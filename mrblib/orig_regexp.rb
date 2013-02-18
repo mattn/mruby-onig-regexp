@@ -1,5 +1,3 @@
-#!mruby
-
 class OnigRegexp
   def self.compile(*args)
     self.new(*args)
@@ -87,3 +85,5 @@ class String
 end
 
 Regexp=OnigRegexp
+
+# This is based on https://github.com/masamitsu-murase/mruby-hs-regexp
