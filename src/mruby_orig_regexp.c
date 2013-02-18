@@ -62,7 +62,7 @@ onig_regexp_init(mrb_state *mrb, mrb_value self, mrb_value str, mrb_value flag) 
 
 static mrb_value
 onig_regexp_initialize(mrb_state *mrb, mrb_value self) {
-  mrb_value source, flag;
+  mrb_value source, flag = mrb_nil_value();
 
   mrb_get_args(mrb, "S|o", &source, &flag);
   onig_regexp_init(mrb, self, source, flag);
@@ -120,6 +120,11 @@ mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
   struct RClass *clazz;
 
   clazz = mrb_define_class(mrb, "OnigRegexp", mrb->object_class);
+
+  mrb_define_const(mrb, clazz, "IGNORECASE", mrb_fixnum_value(REG_ICASE));
+  mrb_define_const(mrb, clazz, "EXTENDED", mrb_fixnum_value(REG_EXTENDED));
+  mrb_define_const(mrb, clazz, "MULTILINE", mrb_fixnum_value(REG_NEWLINE));
+
   mrb_define_method(mrb, clazz, "initialize", onig_regexp_initialize, ARGS_REQ(1) | ARGS_OPT(2));
   mrb_define_method(mrb, clazz, "match", onig_regexp_match, ARGS_REQ(1));
 }
