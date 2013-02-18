@@ -126,9 +126,6 @@ onig_regexp_equal(mrb_state *mrb, mrb_value self) {
   if (mrb_obj_equal(mrb, self, other)){
       return mrb_true_value();
   }
-  if (mrb_type(other) != MRB_TT_DATA || DATA_TYPE(other) != &mrb_onig_regexp_type){
-      return mrb_false_value();
-  }
   regexp_self = mrb_iv_get(mrb, self, mrb_intern(mrb, "@regexp"));
   regexp_other = mrb_iv_get(mrb, other, mrb_intern(mrb, "@regexp"));
   Data_Get_Struct(mrb, regexp_self, &mrb_onig_regexp_type, self_reg);
