@@ -95,7 +95,7 @@ class String
     end
   end
   alias_method :old_sub, :sub
-  def sub(a = '\s', s)
+  def sub(a = '\s', s = nil, &blk)
     begin
       m = (a.class.to_s == 'String' ?  Regexp.new(a.to_s) : a).match(self)
     rescue
@@ -104,13 +104,14 @@ class String
     return self if m.size == 0
     r = ''
     b, e = m.begin(0), m.end(0)
-    r += self[0,b]
-    r += s
-    r += self[e..-1]
+    r += m.pre_match
+    r += blk ? blk.call(m[0]) : s
+    r += m.post_match
     r
   end
   alias_method :old_split, :split
-  def split(a = '\s')
+  def split(a = ' ')
+    return old_split(' ') if a == nil
     return old_split(a) if a.class.to_s == 'String'
     ss = self
     r = []

@@ -6,6 +6,7 @@
 #include <mruby/array.h>
 #include <mruby/string.h>
 #include <mruby/data.h>
+#include <mruby/variable.h>
 #include "onigposix.h"
 
 struct mrb_onig_regexp {
@@ -44,6 +45,8 @@ onig_regexp_init(mrb_state *mrb, mrb_value self, mrb_value str, mrb_value flag) 
   int cflag = 0;
   if (mrb_nil_p(flag))
     cflag = REG_EXTENDED | REG_NEWLINE;
+  else if (mrb_fixnum_p(flag))
+    cflag = mrb_fixnum(flag);
   else if (mrb_type(flag) == MRB_TT_TRUE)
     cflag |= REG_ICASE;
   else if (mrb_string_p(flag)) {
