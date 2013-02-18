@@ -88,7 +88,11 @@ end
 
 class String
   def =~(a)
-    (a.class.to_s == 'String' ?  Regexp.new(a.to_s) : a) =~ self
+    begin
+      (a.class.to_s == 'String' ?  Regexp.new(a.to_s) : a) =~ self
+    rescue
+      false
+    end
   end
   alias_method :old_sub, :sub
   def sub(a, s)
