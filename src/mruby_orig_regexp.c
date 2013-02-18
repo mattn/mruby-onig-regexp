@@ -45,9 +45,12 @@ onig_regexp_init(mrb_state *mrb, mrb_value self, mrb_value str, mrb_value flag) 
   int cflag = 0;
   if (mrb_nil_p(flag))
     cflag = REG_EXTENDED | REG_NEWLINE;
-  else if (mrb_fixnum_p(flag))
-    cflag = mrb_fixnum(flag);
-  else if (mrb_type(flag) == MRB_TT_TRUE)
+  else if (mrb_fixnum_p(flag)) {
+    int nflag = mrb_fixnum(flag);
+    if (nflag & 1) cflag |= REG_ICASE;
+    if (nflag & 2) cflag |= REG_EXTENDED;
+    if (nflag & 4) cflag |= REG_NEWLINE;
+  } else if (mrb_type(flag) == MRB_TT_TRUE)
     cflag |= REG_ICASE;
   else if (mrb_string_p(flag)) {
     if (strchr(RSTRING_PTR(flag), 'i')) cflag |= REG_ICASE;
@@ -160,9 +163,9 @@ mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
 
   clazz = mrb_define_class(mrb, "OnigRegexp", mrb->object_class);
 
-  mrb_define_const(mrb, clazz, "IGNORECASE", mrb_fixnum_value(REG_ICASE));
-  mrb_define_const(mrb, clazz, "EXTENDED", mrb_fixnum_value(REG_EXTENDED));
-  mrb_define_const(mrb, clazz, "MULTILINE", mrb_fixnum_value(REG_NEWLINE));
+  mrb_define_const(mrb, clazz, "IGNORECASE", mrb_fixnum_value(1));
+  mrb_define_const(mrb, clazz, "EXTENDED", mrb_fixnum_value(2));
+  mrb_define_const(mrb, clazz, "MULTILINE", mrb_fixnum_value(4));
 
   mrb_define_method(mrb, clazz, "initialize", onig_regexp_initialize, ARGS_REQ(1) | ARGS_OPT(2));
   mrb_define_method(mrb, clazz, "==", onig_regexp_equal, ARGS_REQ(1));
