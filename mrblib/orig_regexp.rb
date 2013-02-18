@@ -76,11 +76,51 @@ class OnigMatchData
   def to_s
     return self[0]
   end
+
+  def length
+    return @data.length
+  end
+
+  def size
+    return @data.size
+  end
 end
 
 class String
   def =~(a)
-    (a.class.to_s == 'String' ?  Regexp.new(a) : a).match(self)
+    (a.class.to_s == 'String' ?  Regexp.new(a.to_s) : a) =~ self
+  end
+  alias_method :old_sub, :sub
+  def sub(a, s)
+    m = (a.class.to_s == 'String' ?  Regexp.new(a.to_s) : a).match(self)
+    r = ''
+    if m.size == 0
+      return nil
+    end
+    b, e = m.begin(0), m.end(0)
+    r += self[0..b].to_s
+    r += s
+    r += self[e..-1]
+    r
+  end
+  def split(a)
+    ss = self
+    r = []
+    while true
+      begin
+        m = a.match(ss)
+      rescue
+        m = nil
+      end
+      if m == nil || m.size == 0
+        break
+      end
+      b, e = m.begin(0), m.end(0)
+      r << ss[0..b].to_s
+      ss = ss[e..-1]
+    end
+    r << ss
+    r
   end
 end
 

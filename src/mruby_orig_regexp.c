@@ -40,7 +40,7 @@ onig_regexp_init(mrb_state *mrb, mrb_value self, mrb_value str, mrb_value flag) 
     regfree(&reg->re);
   }
 
-  int regerr = regcomp(&reg->re, RSTRING_PTR(str), REG_EXTENDED | REG_NEWLINE);
+  int regerr = regcomp(&reg->re, RSTRING_PTR(str), REG_EXTENDED);
   if (regerr) {
     char err[256];
     regerror(regerr, &reg->re, err, sizeof(err));
@@ -75,7 +75,8 @@ onig_regexp_match(mrb_state *mrb, mrb_value self) {
   int i;
   size_t nmatch = 999;
   regmatch_t match[nmatch];
-  memset(match, 0, sizeof(match));
+  for (i = 0; i < nmatch; i++)
+    match[i].rm_so = -1;
   int regerr = regexec(&reg->re, str, nmatch, match, 0);
   if (regerr) {
     char err[256];
@@ -90,9 +91,9 @@ onig_regexp_match(mrb_state *mrb, mrb_value self) {
   mrb_value c = mrb_class_new_instance(mrb, 0, NULL, clazz);
   mrb_value args[2];
   for (i = 0; i < nmatch; i++) {
-    if (match[i].rm_so >= 0 && match[i].rm_eo >= 0) {
+    if (match[i].rm_so != -1) {
       args[0] = mrb_fixnum_value(match[i].rm_so);
-      args[1] = mrb_fixnum_value(match[i].rm_eo);
+      args[1] = mrb_fixnum_value(match[i].rm_eo - match[i].rm_so);
       mrb_funcall_argv(mrb, c, mrb_intern(mrb, "push"), sizeof(args)/sizeof(args[0]), &args[0]);
       mrb_gc_arena_restore(mrb, ai);
     }
