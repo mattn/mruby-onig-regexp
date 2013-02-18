@@ -103,7 +103,9 @@ class String
     r += self[e..-1]
     r
   end
+  alias_method :old_split, :split
   def split(a)
+    return old_split(a) if a.class.to_s == 'String'
     ss = self
     r = []
     while true
