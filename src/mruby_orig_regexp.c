@@ -40,7 +40,7 @@ onig_regexp_init(mrb_state *mrb, mrb_value self, mrb_value str, mrb_value flag) 
     regfree(&reg->re);
   }
 
-  int regerr = regcomp(&reg->re, RSTRING_PTR(str), REG_EXTENDED);
+  int regerr = regcomp(&reg->re, RSTRING_PTR(str), REG_EXTENDED | REG_NEWLINE);
   if (regerr) {
     char err[256];
     regerror(regerr, &reg->re, err, sizeof(err));
@@ -55,9 +55,7 @@ onig_regexp_initialize(mrb_state *mrb, mrb_value self) {
   mrb_value source, flag;
 
   mrb_get_args(mrb, "S|S", &source, &flag);
-
   onig_regexp_init(mrb, self, source, flag);
-
   return mrb_nil_value();
 }
 

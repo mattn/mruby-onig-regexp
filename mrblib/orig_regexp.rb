@@ -92,11 +92,13 @@ class String
   end
   alias_method :old_sub, :sub
   def sub(a, s)
-    m = (a.class.to_s == 'String' ?  Regexp.new(a.to_s) : a).match(self)
-    r = ''
-    if m.size == 0
-      return nil
+    begin
+      m = (a.class.to_s == 'String' ?  Regexp.new(a.to_s) : a).match(self)
+    rescue
+      return self
     end
+    return self if m.size == 0
+    r = ''
     b, e = m.begin(0), m.end(0)
     r += self[0,b]
     r += s
@@ -112,16 +114,32 @@ class String
       begin
         m = a.match(ss)
       rescue
-        m = nil
-      end
-      if m == nil || m.size == 0
         break
       end
+      break if m.size == 0
       b, e = m.begin(0), m.end(0)
       r << ss[0,b]
       ss = ss[e..-1]
     end
     r << ss
+    r
+  end
+  alias_method :old_scan, :scan
+  def scan(a)
+    return old_scan(a) if a.class.to_s == 'String'
+    ss = self
+    r = []
+    while true
+      begin
+        m = a.match(ss)
+      rescue
+        break
+      end
+      break if m.size == 0
+      b, e = m.begin(0), m.end(0)
+      r << ss[0,b]
+      ss = ss[e..-1]
+    end
     r
   end
 end
