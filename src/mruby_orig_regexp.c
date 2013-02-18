@@ -97,6 +97,7 @@ onig_regexp_match(mrb_state *mrb, mrb_value self) {
     }
   }
 
+  mrb_iv_set(mrb, c, mrb_intern(mrb, "@string"), mrb_str_new_cstr(mrb, str));
   mrb_iv_set(mrb, self, mrb_intern(mrb, "@last_match"), c);
   return c;
 }

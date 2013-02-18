@@ -129,16 +129,13 @@ class String
     return old_scan(a) if a.class.to_s == 'String'
     ss = self
     r = []
-    while true
-      begin
-        m = a.match(ss)
-      rescue
-        break
-      end
-      break if m.size == 0
-      b, e = m.begin(0), m.end(0)
-      r << ss[0,b]
-      ss = ss[e..-1]
+    begin
+      m = a.match(ss)
+    rescue
+      return []
+    end
+    (1..m.size).each do |i|
+      r << m[i]
     end
     r
   end
