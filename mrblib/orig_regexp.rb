@@ -98,7 +98,7 @@ class String
       return nil
     end
     b, e = m.begin(0), m.end(0)
-    r += self[0..b].to_s
+    r += b > 0 ? self[0..b-1].to_s : ""
     r += s
     r += self[e..-1]
     r
@@ -118,7 +118,7 @@ class String
         break
       end
       b, e = m.begin(0), m.end(0)
-      r << ss[0..b].to_s
+      r << (b > 0 ? ss[0..b-1].to_s : "")
       ss = ss[e..-1]
     end
     r << ss
