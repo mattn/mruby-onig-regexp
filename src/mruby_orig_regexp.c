@@ -40,7 +40,17 @@ onig_regexp_init(mrb_state *mrb, mrb_value self, mrb_value str, mrb_value flag) 
     regfree(&reg->re);
   }
 
-  int regerr = regcomp(&reg->re, RSTRING_PTR(str), REG_EXTENDED | REG_NEWLINE);
+  int cflag = 0;
+  if (mrb_nil_p(flag))
+    cflag = REG_EXTENDED | REG_NEWLINE;
+  else if (mrb_type(flag) == MRB_TT_TRUE)
+    cflag |= REG_ICASE;
+  else if (mrb_string_p(flag)) {
+    if (strchr(RSTRING_PTR(flag), 'i')) cflag |= REG_ICASE;
+    if (strchr(RSTRING_PTR(flag), 'x')) cflag |= REG_EXTENDED;
+    if (strchr(RSTRING_PTR(flag), 'm')) cflag |= REG_NEWLINE;
+  }
+  int regerr = regcomp(&reg->re, RSTRING_PTR(str), cflag);
   if (regerr) {
     char err[256];
     regerror(regerr, &reg->re, err, sizeof(err));
@@ -54,7 +64,7 @@ static mrb_value
 onig_regexp_initialize(mrb_state *mrb, mrb_value self) {
   mrb_value source, flag;
 
-  mrb_get_args(mrb, "S|S", &source, &flag);
+  mrb_get_args(mrb, "S|o", &source, &flag);
   onig_regexp_init(mrb, self, source, flag);
   return mrb_nil_value();
 }
@@ -76,7 +86,10 @@ onig_regexp_match(mrb_state *mrb, mrb_value self) {
   for (i = 0; i < nmatch; i++)
     match[i].rm_so = -1;
   int regerr = regexec(&reg->re, str, nmatch, match, 0);
-  if (regerr) {
+  if (regerr == REG_NOMATCH)
+    return mrb_nil_value();
+
+  if (regerr != 0) {
     char err[256];
     regerror(regerr, &reg->re, err, sizeof(err));
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "'%s' is an invalid regular expression because %s.",
