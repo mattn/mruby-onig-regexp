@@ -96,6 +96,9 @@ class String
   end
   alias_method :old_sub, :sub
   def sub(a = '\s', s = nil, &blk)
+    if a.class.to_s == 'String'
+      blk ? old_sub(*ars) {|x| blk.call(x)} : old_sub(*args)
+    end
     begin
       m = (a.class.to_s == 'String' ?  Regexp.new(a.to_s) : a).match(self)
     rescue
@@ -103,22 +106,43 @@ class String
     end
     return self if m.size == 0
     r = ''
-    b, e = m.begin(0), m.end(0)
     r += m.pre_match
     r += blk ? blk.call(m[0]) : s
     r += m.post_match
     r
   end
-  alias_method :old_split, :split
-  def split(a = ' ', limit = 0)
-    return old_split(' ') if a == nil
-    return old_split(a) if a.class.to_s == 'String'
+  alias_method :old_gsub, :gsub
+  def gsub(*args, &blk)
+    if args[0].class.to_s == 'String'
+      blk ? old_gsub(*args) {|x| blk.call(x)} : old_gsub(*args)
+    end
     ss = self
-    r = []
-    l = limit
+    r = ''
     while true
       begin
-        m = a.match(ss)
+        m = args[0].match(ss)
+      rescue
+        break
+      end
+      break if !m || m.size == 0
+      b, e = m.begin(0), m.end(0)
+      r += ss[0,b]
+      r += blk ? blk.call(m[0]) : args[1]
+      ss = ss[e..-1]
+    end
+    r += ss
+    r
+  end
+  alias_method :old_split, :split
+  def split(*args)
+    return old_split(' ') if args[0] == nil
+    return old_split(args[0]) if args[0].class.to_s == 'String'
+    ss = self
+    r = []
+    l = args.size == 2 ? args[1].to_i : 0
+    while true
+      begin
+        m = args[0].match(ss)
       rescue
         break
       end
@@ -133,12 +157,12 @@ class String
     r
   end
   alias_method :old_scan, :scan
-  def scan(a)
-    return old_scan(a) if a.class.to_s == 'String'
+  def scan(*args)
+    return old_scan(*args) if args[0].class.to_s == 'String'
     ss = self
     r = []
     begin
-      m = a.match(ss)
+      m = args[0].match(ss)
     rescue
       return []
     end
