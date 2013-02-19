@@ -110,21 +110,24 @@ class String
     r
   end
   alias_method :old_split, :split
-  def split(a = ' ')
+  def split(a = ' ', limit = 0)
     return old_split(' ') if a == nil
     return old_split(a) if a.class.to_s == 'String'
     ss = self
     r = []
+    l = limit
     while true
       begin
         m = a.match(ss)
       rescue
         break
       end
-      break if m.size == 0
+      break if !m || m.size == 0
       b, e = m.begin(0), m.end(0)
       r << ss[0,b]
       ss = ss[e..-1]
+      l -= 1
+      break unless l
     end
     r << ss
     r

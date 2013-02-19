@@ -130,7 +130,10 @@ onig_regexp_equal(mrb_state *mrb, mrb_value self) {
 
   mrb_get_args(mrb, "o", &other);
   if (mrb_obj_equal(mrb, self, other)){
-      return mrb_true_value();
+    return mrb_true_value();
+  }
+  if (mrb_nil_p(other)) {
+    return mrb_false_value();
   }
   regexp_self = mrb_iv_get(mrb, self, mrb_intern(mrb, "@regexp"));
   regexp_other = mrb_iv_get(mrb, other, mrb_intern(mrb, "@regexp"));
