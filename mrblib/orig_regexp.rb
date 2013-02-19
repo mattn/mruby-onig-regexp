@@ -124,11 +124,11 @@ class String
       rescue
         break
       end
-      break if !m || m.size == 0
-      b, e = m.begin(0), m.end(0)
-      r += ss[0,b]
+	  break if !m || m.size == 0
+      return r if m.end(0) == 0
+      r += m.pre_match
       r += blk ? blk.call(m[0]) : args[1]
-      ss = ss[e..-1]
+      ss = m.post_match
     end
     r += ss
     r
@@ -146,10 +146,10 @@ class String
       rescue
         break
       end
-      break if !m || m.size == 0
-      b, e = m.begin(0), m.end(0)
-      r << ss[0,b]
-      ss = ss[e..-1]
+	  break if !m || m.size == 0
+      return r if m.end(0) == 0
+      r << m.pre_match
+      ss = m.post_match
       l -= 1
       break unless l
     end
