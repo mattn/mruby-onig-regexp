@@ -161,13 +161,16 @@ class String
     return old_scan(*args) if args[0].class.to_s == 'String'
     ss = self
     r = []
-    begin
-      m = args[0].match(ss)
-    rescue
-      return []
-    end
-    (1..m.size).each do |i|
-      r << m[i]
+	while true
+      begin
+        m = args[0].match(ss)
+      rescue
+        return []
+      end
+	  break if !m || m.size == 0
+      return r if m.end(0) == 0
+      r << m[0]
+      ss = m.post_match
     end
     if blk
       r.each do |x|
