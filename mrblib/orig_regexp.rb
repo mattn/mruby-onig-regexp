@@ -146,6 +146,6 @@ class String
   end
 end
 
-Regexp=OnigRegexp
+Regexp = OnigRegexp unless Object.const_defined?(:Regexp)
 
 # This is based on https://github.com/masamitsu-murase/mruby-hs-regexp
