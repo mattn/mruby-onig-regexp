@@ -95,26 +95,26 @@ class String
     end
   end
   alias_method :old_sub, :sub
-  def sub(a = '\s', s = nil, &blk)
-    if a.class.to_s == 'String'
-      blk ? old_sub(*ars) {|x| blk.call(x)} : old_sub(*args)
+  def sub(*args, &blk)
+    if args[0].class.to_s == 'String'
+      return blk ? old_sub(*args) {|x| blk.call(x)} : old_sub(*args)
     end
     begin
-      m = (a.class.to_s == 'String' ?  Regexp.new(a.to_s) : a).match(self)
+      m = args[0].match(self)
     rescue
       return self
     end
     return self if m.size == 0
     r = ''
     r += m.pre_match
-    r += blk ? blk.call(m[0]) : s
+    r += blk ? blk.call(m[0]) : args[1]
     r += m.post_match
     r
   end
   alias_method :old_gsub, :gsub
   def gsub(*args, &blk)
     if args[0].class.to_s == 'String'
-      blk ? old_gsub(*args) {|x| blk.call(x)} : old_gsub(*args)
+      return blk ? old_gsub(*args) {|x| blk.call(x)} : old_gsub(*args)
     end
     ss = self
     r = ''
@@ -157,7 +157,7 @@ class String
     r
   end
   alias_method :old_scan, :scan
-  def scan(*args)
+  def scan(*args, &blk)
     return old_scan(*args) if args[0].class.to_s == 'String'
     ss = self
     r = []
@@ -168,6 +168,12 @@ class String
     end
     (1..m.size).each do |i|
       r << m[i]
+    end
+    if blk
+      r.each do |x|
+        blk.call(x)
+      end
+      return self
     end
     r
   end
