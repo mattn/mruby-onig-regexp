@@ -1,6 +1,12 @@
 class OnigRegexp
+  @memo = {}
+
   def self.compile(*args)
-    self.new(*args)
+    as = args.to_s
+    unless @memo.key? as
+      @memo[as] = self.new(*args)
+    end
+    @memo[as]
   end
 
   # ISO 15.2.15.7.8

@@ -104,10 +104,13 @@ onig_regexp_match(mrb_state *mrb, mrb_value self) {
       str, err);
   }
 
+  mrb_iv_set(mrb, self, mrb_intern(mrb, "@last_match"), mrb_nil_value());
+
   int ai = mrb_gc_arena_save(mrb);
   struct RClass* clazz;
   clazz = mrb_class_get(mrb, "OnigMatchData");
   mrb_value c = mrb_class_new_instance(mrb, 0, NULL, clazz);
+  mrb_iv_set(mrb, c, mrb_intern(mrb, "@string"), mrb_str_new_cstr(mrb, str));
   mrb_value args[2];
   for (i = 0; i < nmatch; i++) {
     if (match[i].rm_so != -1) {
@@ -118,7 +121,6 @@ onig_regexp_match(mrb_state *mrb, mrb_value self) {
     }
   }
 
-  mrb_iv_set(mrb, c, mrb_intern(mrb, "@string"), mrb_str_new_cstr(mrb, str));
   mrb_iv_set(mrb, self, mrb_intern(mrb, "@last_match"), c);
   return c;
 }
