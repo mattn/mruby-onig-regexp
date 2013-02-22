@@ -136,7 +136,7 @@ class String
   alias_method :old_split, :split
   def split(*args)
     return old_split(' ') if args[0] == nil
-    return old_split(args[0]) if args[0].class.to_s == 'String'
+    return old_split(*args) if args[0].class.to_s == 'String'
     ss = self
     r = []
     l = args.size == 2 ? args[1].to_i : 0
