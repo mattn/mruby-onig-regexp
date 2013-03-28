@@ -62,8 +62,8 @@ onig_regexp_init(mrb_state *mrb, mrb_value self, mrb_value str, mrb_value flag) 
   if (regerr) {
     char err[256];
     regerror(regerr, &reg->re, err, sizeof(err));
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "'%s' is an invalid regular expression because %s.",
-      RSTRING_PTR(str), err);
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "'%S' is an invalid regular expression because %S.",
+      str, mrb_str_new_cstr(mrb, err));
   }
   mrb_iv_set(mrb, self, mrb_intern(mrb, "@source"), str);
 }
@@ -100,8 +100,8 @@ onig_regexp_match(mrb_state *mrb, mrb_value self) {
   if (regerr != 0) {
     char err[256];
     regerror(regerr, &reg->re, err, sizeof(err));
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "'%s' is an invalid regular expression because %s.",
-      str, err);
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "'%S' is an invalid regular expression because %S.",
+      mrb_str_new_cstr(mrb, str), mrb_str_new_cstr(mrb, err));
   }
 
   mrb_iv_set(mrb, self, mrb_intern(mrb, "@last_match"), mrb_nil_value());
