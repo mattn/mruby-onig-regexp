@@ -89,7 +89,7 @@ onig_regexp_match(mrb_state *mrb, mrb_value self) {
   mrb_int pos = 0;
 
   mrb_get_args(mrb, "z|i", &str, &pos);
-  if (pos < 0 || pos >= RSTRING_LEN(str)) {
+  if (pos < 0 || pos >= strlen(str)) {
     return mrb_nil_value();
   }
 
