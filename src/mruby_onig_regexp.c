@@ -43,9 +43,9 @@ onig_regexp_init(mrb_state *mrb, mrb_value self, mrb_value str, mrb_value flag) 
   }
 
   int cflag = 0;
-  if (mrb_nil_p(flag))
+  if (mrb_nil_p(flag)) {
     cflag = REG_EXTENDED | REG_NEWLINE;
-  else if (mrb_fixnum_p(flag)) {
+  } else if (mrb_fixnum_p(flag)) {
     int nflag = mrb_fixnum(flag);
     if (nflag & 1) cflag |= REG_ICASE;
     if (nflag & 2) cflag |= REG_EXTENDED;
@@ -53,9 +53,13 @@ onig_regexp_init(mrb_state *mrb, mrb_value self, mrb_value str, mrb_value flag) 
   } else if (mrb_type(flag) == MRB_TT_TRUE)
     cflag |= REG_ICASE;
   else if (mrb_string_p(flag)) {
-    if (strchr(RSTRING_PTR(flag), 'i')) cflag |= REG_ICASE;
-    if (strchr(RSTRING_PTR(flag), 'x')) cflag |= REG_EXTENDED;
-    if (strchr(RSTRING_PTR(flag), 'm')) cflag |= REG_NEWLINE;
+    if (RSTRING_LEN(flag) == 0) {
+      cflag = REG_EXTENDED | REG_NEWLINE;
+    } else {
+      if (strchr(RSTRING_PTR(flag), 'i')) cflag |= REG_ICASE;
+      if (strchr(RSTRING_PTR(flag), 'x')) cflag |= REG_EXTENDED;
+      if (strchr(RSTRING_PTR(flag), 'm')) cflag |= REG_NEWLINE;
+    }
   }
   reg->flag = cflag;
   int regerr = regcomp(&reg->re, RSTRING_PTR(str), cflag);
@@ -82,8 +86,12 @@ onig_regexp_match(mrb_state *mrb, mrb_value self) {
   const char *str;
   mrb_value regexp;
   struct mrb_onig_regexp *reg;
+  mrb_int pos = 0;
 
-  mrb_get_args(mrb, "z", &str);
+  mrb_get_args(mrb, "z|i", &str, &pos);
+  if (pos < 0 || pos >= RSTRING_LEN(str)) {
+    return mrb_nil_value();
+  }
 
   regexp = mrb_iv_get(mrb, self, mrb_intern(mrb, "@regexp"));
   Data_Get_Struct(mrb, regexp, &mrb_onig_regexp_type, reg);
@@ -93,7 +101,7 @@ onig_regexp_match(mrb_state *mrb, mrb_value self) {
   regmatch_t match[nmatch];
   for (i = 0; i < nmatch; i++)
     match[i].rm_so = -1;
-  int regerr = regexec(&reg->re, str, nmatch, match, 0);
+  int regerr = regexec(&reg->re, str + pos, nmatch, match, 0);
   if (regerr == REG_NOMATCH)
     return mrb_nil_value();
 
@@ -114,7 +122,7 @@ onig_regexp_match(mrb_state *mrb, mrb_value self) {
   mrb_value args[2];
   for (i = 0; i < nmatch; i++) {
     if (match[i].rm_so != -1) {
-      args[0] = mrb_fixnum_value(match[i].rm_so);
+      args[0] = mrb_fixnum_value(match[i].rm_so + pos);
       args[1] = mrb_fixnum_value(match[i].rm_eo - match[i].rm_so);
       mrb_funcall_argv(mrb, c, mrb_intern(mrb, "push"), sizeof(args)/sizeof(args[0]), &args[0]);
       mrb_gc_arena_restore(mrb, ai);
@@ -174,7 +182,7 @@ mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
 
   mrb_define_method(mrb, clazz, "initialize", onig_regexp_initialize, ARGS_REQ(1) | ARGS_OPT(2));
   mrb_define_method(mrb, clazz, "==", onig_regexp_equal, ARGS_REQ(1));
-  mrb_define_method(mrb, clazz, "match", onig_regexp_match, ARGS_REQ(1));
+  mrb_define_method(mrb, clazz, "match", onig_regexp_match, ARGS_REQ(1) | ARGS_OPT(1));
   mrb_define_method(mrb, clazz, "casefold?", onig_regexp_casefold_p, ARGS_NONE());
 }
 

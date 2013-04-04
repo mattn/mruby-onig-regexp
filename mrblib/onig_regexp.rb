@@ -155,6 +155,7 @@ class String
 	  break if !m || m.size == 0
       return r if m.end(0) == 0
       r << m.pre_match
+      r << m[1] if m.size > 1
       ss = m.post_match
       l -= 1
       break unless l
