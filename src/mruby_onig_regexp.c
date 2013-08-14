@@ -117,7 +117,7 @@ onig_regexp_match(mrb_state *mrb, mrb_value self) {
   int ai = mrb_gc_arena_save(mrb);
   struct RClass* clazz;
   clazz = mrb_class_get(mrb, "OnigMatchData");
-  mrb_value c = mrb_class_new_instance(mrb, 0, NULL, clazz);
+  mrb_value c = mrb_obj_new(mrb, clazz, 0, NULL);
   mrb_iv_set(mrb, c, mrb_intern(mrb, "@string"), mrb_str_new_cstr(mrb, str));
   mrb_value args[2];
   for (i = 0; i < nmatch; i++) {
