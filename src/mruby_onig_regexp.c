@@ -30,11 +30,11 @@ onig_regexp_init(mrb_state *mrb, mrb_value self, mrb_value str, mrb_value flag) 
   mrb_value regexp;
   struct mrb_onig_regexp *reg;
 
-  regexp = mrb_iv_get(mrb, self, mrb_intern(mrb, "@regexp"));
+  regexp = mrb_iv_get(mrb, self, mrb_intern_cstr(mrb, "@regexp"));
   if (mrb_nil_p(regexp)) {
     reg = malloc(sizeof(struct mrb_onig_regexp));
     memset(reg, 0, sizeof(struct mrb_onig_regexp));
-    mrb_iv_set(mrb, self, mrb_intern(mrb, "@regexp"), mrb_obj_value(
+    mrb_iv_set(mrb, self, mrb_intern_cstr(mrb, "@regexp"), mrb_obj_value(
         Data_Wrap_Struct(mrb, mrb->object_class,
           &mrb_onig_regexp_type, (void*) reg)));
   }else{
@@ -69,7 +69,7 @@ onig_regexp_init(mrb_state *mrb, mrb_value self, mrb_value str, mrb_value flag) 
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "'%S' is an invalid regular expression because %S.",
       str, mrb_str_new_cstr(mrb, err));
   }
-  mrb_iv_set(mrb, self, mrb_intern(mrb, "@source"), str);
+  mrb_iv_set(mrb, self, mrb_intern_cstr(mrb, "@source"), str);
 }
 
 static mrb_value
@@ -93,7 +93,7 @@ onig_regexp_match(mrb_state *mrb, mrb_value self) {
     return mrb_nil_value();
   }
 
-  regexp = mrb_iv_get(mrb, self, mrb_intern(mrb, "@regexp"));
+  regexp = mrb_iv_get(mrb, self, mrb_intern_cstr(mrb, "@regexp"));
   Data_Get_Struct(mrb, regexp, &mrb_onig_regexp_type, reg);
 
   int i;
@@ -112,24 +112,24 @@ onig_regexp_match(mrb_state *mrb, mrb_value self) {
       mrb_str_new_cstr(mrb, str), mrb_str_new_cstr(mrb, err));
   }
 
-  mrb_iv_set(mrb, self, mrb_intern(mrb, "@last_match"), mrb_nil_value());
+  mrb_iv_set(mrb, self, mrb_intern_cstr(mrb, "@last_match"), mrb_nil_value());
 
   int ai = mrb_gc_arena_save(mrb);
   struct RClass* clazz;
   clazz = mrb_class_get(mrb, "OnigMatchData");
   mrb_value c = mrb_obj_new(mrb, clazz, 0, NULL);
-  mrb_iv_set(mrb, c, mrb_intern(mrb, "@string"), mrb_str_new_cstr(mrb, str));
+  mrb_iv_set(mrb, c, mrb_intern_cstr(mrb, "@string"), mrb_str_new_cstr(mrb, str));
   mrb_value args[2];
   for (i = 0; i < nmatch; i++) {
     if (match[i].rm_so != -1) {
       args[0] = mrb_fixnum_value(match[i].rm_so + pos);
       args[1] = mrb_fixnum_value(match[i].rm_eo - match[i].rm_so);
-      mrb_funcall_argv(mrb, c, mrb_intern(mrb, "push"), sizeof(args)/sizeof(args[0]), &args[0]);
+      mrb_funcall_argv(mrb, c, mrb_intern_cstr(mrb, "push"), sizeof(args)/sizeof(args[0]), &args[0]);
       mrb_gc_arena_restore(mrb, ai);
     }
   }
 
-  mrb_iv_set(mrb, self, mrb_intern(mrb, "@last_match"), c);
+  mrb_iv_set(mrb, self, mrb_intern_cstr(mrb, "@last_match"), c);
   return c;
 }
 
@@ -145,8 +145,8 @@ onig_regexp_equal(mrb_state *mrb, mrb_value self) {
   if (mrb_nil_p(other)) {
     return mrb_false_value();
   }
-  regexp_self = mrb_iv_get(mrb, self, mrb_intern(mrb, "@regexp"));
-  regexp_other = mrb_iv_get(mrb, other, mrb_intern(mrb, "@regexp"));
+  regexp_self = mrb_iv_get(mrb, self, mrb_intern_cstr(mrb, "@regexp"));
+  regexp_other = mrb_iv_get(mrb, other, mrb_intern_cstr(mrb, "@regexp"));
   Data_Get_Struct(mrb, regexp_self, &mrb_onig_regexp_type, self_reg);
   Data_Get_Struct(mrb, regexp_other, &mrb_onig_regexp_type, other_reg);
 
@@ -156,7 +156,7 @@ onig_regexp_equal(mrb_state *mrb, mrb_value self) {
   if (self_reg->flag != other_reg->flag){
       return mrb_false_value();
   }
-  return mrb_str_equal(mrb, mrb_iv_get(mrb, self, mrb_intern(mrb, "@source")), mrb_iv_get(mrb, other, mrb_intern(mrb, "@source"))) ?
+  return mrb_str_equal(mrb, mrb_iv_get(mrb, self, mrb_intern_cstr(mrb, "@source")), mrb_iv_get(mrb, other, mrb_intern_cstr(mrb, "@source"))) ?
       mrb_true_value() : mrb_false_value();
 }
 
@@ -165,7 +165,7 @@ onig_regexp_casefold_p(mrb_state *mrb, mrb_value self) {
   mrb_value regexp;
   struct mrb_onig_regexp *reg;
 
-  regexp = mrb_iv_get(mrb, self, mrb_intern(mrb, "@regexp"));
+  regexp = mrb_iv_get(mrb, self, mrb_intern_cstr(mrb, "@regexp"));
   Data_Get_Struct(mrb, regexp, &mrb_onig_regexp_type, reg);
   return (reg->flag & REG_ICASE) ? mrb_true_value() : mrb_false_value();
 }
