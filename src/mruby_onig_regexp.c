@@ -61,12 +61,6 @@ onig_regexp_initialize(mrb_state *mrb, mrb_value self) {
   return mrb_nil_value();
 }
 
-struct traverse_arg {
-  mrb_state* mrb;
-  mrb_value result;
-  int arena_idx;
-};
-
 static mrb_value
 onig_regexp_match(mrb_state *mrb, mrb_value self) {
   mrb_value str;
