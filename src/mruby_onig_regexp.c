@@ -59,7 +59,7 @@ onig_regexp_initialize(mrb_state *mrb, mrb_value self) {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "'%S' is an invalid regular expression because %S.",
                str, mrb_str_new(mrb, (char const*)einfo.par, einfo.par_end - einfo.par));
   }
-  mrb_iv_set(mrb, self, mrb_intern_cstr(mrb, "@source"), str);
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@source"), str);
 
   DATA_PTR(self) = reg;
   DATA_TYPE(self) = &mrb_onig_regexp_type;
@@ -98,7 +98,7 @@ onig_regexp_match(mrb_state *mrb, mrb_value self) {
   mrb_iv_set(mrb, c, mrb_intern_lit(mrb, "string"), mrb_str_dup(mrb, str));
   mrb_iv_set(mrb, c, mrb_intern_lit(mrb, "regexp"), self);
 
-  mrb_iv_set(mrb, self, mrb_intern_cstr(mrb, "@last_match"), c);
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@last_match"), c);
   return c;
 }
 
@@ -123,7 +123,7 @@ onig_regexp_equal(mrb_state *mrb, mrb_value self) {
   if (onig_get_options(self_reg) != onig_get_options(other_reg)){
       return mrb_false_value();
   }
-  return mrb_str_equal(mrb, mrb_iv_get(mrb, self, mrb_intern_cstr(mrb, "@source")), mrb_iv_get(mrb, other, mrb_intern_cstr(mrb, "@source"))) ?
+  return mrb_str_equal(mrb, mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@source")), mrb_iv_get(mrb, other, mrb_intern_lit(mrb, "@source"))) ?
       mrb_true_value() : mrb_false_value();
 }
 
