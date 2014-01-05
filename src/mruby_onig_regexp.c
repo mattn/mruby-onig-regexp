@@ -20,10 +20,6 @@ static struct mrb_data_type mrb_onig_regexp_type = {
 
 static void
 onig_regexp_init(mrb_state *mrb, mrb_value self, mrb_value str, mrb_value flag) {
-  if (!mrb_nil_p(mrb_iv_get(mrb, self, mrb_intern_cstr(mrb, "@regexp")))) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "regexp already specified");
-  }
-
   int cflag = 0;
   OnigSyntaxType* syntax = ONIG_SYNTAX_RUBY;
   if(mrb_nil_p(flag)) {
@@ -52,9 +48,8 @@ onig_regexp_init(mrb_state *mrb, mrb_value self, mrb_value str, mrb_value flag) 
   }
   mrb_iv_set(mrb, self, mrb_intern_cstr(mrb, "@source"), str);
 
-  mrb_iv_set(mrb, self, mrb_intern_cstr(mrb, "@regexp"), mrb_obj_value(
-      Data_Wrap_Struct(mrb, mrb->object_class,
-                       &mrb_onig_regexp_type, reg)));
+  DATA_PTR(self) = reg;
+  DATA_TYPE(self) = &mrb_onig_regexp_type;
 }
 
 static mrb_value
@@ -75,7 +70,6 @@ struct traverse_arg {
 static mrb_value
 onig_regexp_match(mrb_state *mrb, mrb_value self) {
   mrb_value str;
-  mrb_value regexp;
   OnigRegex reg;
   mrb_int pos = 0;
 
@@ -84,8 +78,7 @@ onig_regexp_match(mrb_state *mrb, mrb_value self) {
     return mrb_nil_value();
   }
 
-  regexp = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@regexp"));
-  Data_Get_Struct(mrb, regexp, &mrb_onig_regexp_type, reg);
+  Data_Get_Struct(mrb, self, &mrb_onig_regexp_type, reg);
 
   OnigRegion* match = onig_region_new();
   OnigUChar const* str_ptr = (OnigUChar*)RSTRING_PTR(str);
@@ -120,7 +113,7 @@ onig_regexp_match(mrb_state *mrb, mrb_value self) {
 
 static mrb_value
 onig_regexp_equal(mrb_state *mrb, mrb_value self) {
-  mrb_value other, regexp_self, regexp_other;
+  mrb_value other;
   OnigRegex self_reg, other_reg;
 
   mrb_get_args(mrb, "o", &other);
@@ -130,10 +123,8 @@ onig_regexp_equal(mrb_state *mrb, mrb_value self) {
   if (mrb_nil_p(other)) {
     return mrb_false_value();
   }
-  regexp_self = mrb_iv_get(mrb, self, mrb_intern_cstr(mrb, "@regexp"));
-  regexp_other = mrb_iv_get(mrb, other, mrb_intern_cstr(mrb, "@regexp"));
-  Data_Get_Struct(mrb, regexp_self, &mrb_onig_regexp_type, self_reg);
-  Data_Get_Struct(mrb, regexp_other, &mrb_onig_regexp_type, other_reg);
+  Data_Get_Struct(mrb, self, &mrb_onig_regexp_type, self_reg);
+  Data_Get_Struct(mrb, other, &mrb_onig_regexp_type, other_reg);
 
   if (!self_reg || !other_reg){
       mrb_raise(mrb, E_RUNTIME_ERROR, "Invalid OnigRegexp");
@@ -147,11 +138,9 @@ onig_regexp_equal(mrb_state *mrb, mrb_value self) {
 
 static mrb_value
 onig_regexp_casefold_p(mrb_state *mrb, mrb_value self) {
-  mrb_value regexp;
   OnigRegex reg;
 
-  regexp = mrb_iv_get(mrb, self, mrb_intern_cstr(mrb, "@regexp"));
-  Data_Get_Struct(mrb, regexp, &mrb_onig_regexp_type, reg);
+  Data_Get_Struct(mrb, self, &mrb_onig_regexp_type, reg);
   return (onig_get_options(reg) & ONIG_OPTION_IGNORECASE) ? mrb_true_value() : mrb_false_value();
 }
 
@@ -160,6 +149,7 @@ mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
   struct RClass *clazz;
 
   clazz = mrb_define_class(mrb, "OnigRegexp", mrb->object_class);
+  MRB_SET_INSTANCE_TT(clazz, MRB_TT_DATA);
 
   mrb_define_const(mrb, clazz, "IGNORECASE", mrb_fixnum_value(1));
   mrb_define_const(mrb, clazz, "EXTENDED", mrb_fixnum_value(2));
