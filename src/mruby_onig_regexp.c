@@ -18,6 +18,16 @@ static struct mrb_data_type mrb_onig_regexp_type = {
   "PosixRegexp", onig_regexp_free
 };
 
+static void
+match_data_free(mrb_state* mrb, void* p) {
+  (void)mrb;
+  onig_region_free((OnigRegion*)p, 1);
+}
+
+static struct mrb_data_type mrb_onig_region_type = {
+  "OnigRegion", match_data_free
+};
+
 static mrb_value
 onig_regexp_initialize(mrb_state *mrb, mrb_value self) {
   mrb_value str, flag = mrb_nil_value();
@@ -83,21 +93,12 @@ onig_regexp_match(mrb_state *mrb, mrb_value self) {
     mrb_raise(mrb, E_REGEXP_ERROR, err);
   }
 
-  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@last_match"), mrb_nil_value());
-
-  mrb_value c = mrb_obj_new(mrb, mrb_class_get(mrb, "OnigMatchData"), 0, NULL);
-  mrb_iv_set(mrb, c, mrb_intern_lit(mrb, "@string"), mrb_str_dup(mrb, str));
-
-  int ai = mrb_gc_arena_save(mrb);
-  int i;
-  for(i = 0; i < match->num_regs; ++i) {
-    mrb_value func_args[] = { mrb_fixnum_value(match->beg[i]), mrb_fixnum_value(match->end[i] - match->beg[i]) };
-    mrb_funcall_argv(mrb, c, mrb_intern_lit(mrb, "push"), 2, func_args);
-    mrb_gc_arena_restore(mrb, ai);
-  }
+  mrb_value c = mrb_obj_value(mrb_data_object_alloc(
+      mrb, mrb_class_get(mrb, "OnigMatchData"), match, &mrb_onig_region_type));
+  mrb_iv_set(mrb, c, mrb_intern_lit(mrb, "string"), mrb_str_dup(mrb, str));
+  mrb_iv_set(mrb, c, mrb_intern_lit(mrb, "regexp"), self);
 
   mrb_iv_set(mrb, self, mrb_intern_cstr(mrb, "@last_match"), c);
-  onig_region_free(match, 0);
   return c;
 }
 
@@ -140,6 +141,152 @@ onig_regexp_version(mrb_state* mrb, mrb_value self) {
   return mrb_str_new_cstr(mrb, onig_version());
 }
 
+static mrb_value
+match_data_to_a(mrb_state* mrb, mrb_value self);
+
+// ISO 15.2.16.3.1
+static mrb_value
+match_data_index(mrb_state* mrb, mrb_value self) {
+  mrb_int idx;
+  mrb_get_args(mrb, "i", &idx);
+  mrb_value ary = match_data_to_a(mrb, self);
+  return mrb_ary_entry(ary, idx);
+}
+
+#define match_data_check_index() \
+  if(idx < 0 || reg->num_regs <= idx) \
+    mrb_raisef(mrb, E_INDEX_ERROR, "index %S out of matches", mrb_fixnum_value(idx)) \
+
+// ISO 15.2.16.3.2
+static mrb_value
+match_data_begin(mrb_state* mrb, mrb_value self) {
+  mrb_int idx;
+  mrb_get_args(mrb, "i", &idx);
+  OnigRegion* reg;
+  Data_Get_Struct(mrb, self, &mrb_onig_region_type, reg);
+  match_data_check_index();
+  return mrb_fixnum_value(reg->beg[idx]);
+}
+
+// ISO 15.2.16.3.3
+static mrb_value
+match_data_captures(mrb_state* mrb, mrb_value self) {
+  mrb_value ary = match_data_to_a(mrb, self);
+  return mrb_ary_new_from_values(mrb, RARRAY_LEN(ary) - 1, RARRAY_PTR(ary) + 1);
+}
+
+// ISO 15.2.16.3.4
+static mrb_value
+match_data_end(mrb_state* mrb, mrb_value self) {
+  mrb_int idx;
+  mrb_get_args(mrb, "i", &idx);
+  OnigRegion* reg;
+  Data_Get_Struct(mrb, self, &mrb_onig_region_type, reg);
+  match_data_check_index();
+  return mrb_fixnum_value(reg->end[idx]);
+}
+
+// ISO 15.2.16.3.5
+static mrb_value
+match_data_copy(mrb_state* mrb, mrb_value self) {
+  mrb_value src_val;
+  mrb_get_args(mrb, "o", &src_val);
+
+  OnigRegion* src;
+  Data_Get_Struct(mrb, src_val, &mrb_onig_region_type, src);
+
+  OnigRegion* dst = onig_region_new();
+  onig_region_copy(dst, src);
+
+  DATA_PTR(self) = dst;
+  DATA_TYPE(self) = &mrb_onig_region_type;
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "string"), mrb_iv_get(mrb, src_val, mrb_intern_lit(mrb, "string")));
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "regexp"), mrb_iv_get(mrb, src_val, mrb_intern_lit(mrb, "regexp")));
+  return self;
+}
+
+// ISO 15.2.16.3.6
+// ISO 15.2.16.3.10
+static mrb_value
+match_data_length(mrb_state* mrb, mrb_value self) {
+  OnigRegion* reg;
+  Data_Get_Struct(mrb, self, &mrb_onig_region_type, reg);
+  return mrb_fixnum_value(reg->num_regs);
+}
+
+// ISO 15.2.16.3.7
+static mrb_value
+match_data_offset(mrb_state* mrb, mrb_value self) {
+  mrb_int idx;
+  mrb_get_args(mrb, "i", &idx);
+  OnigRegion* reg;
+  Data_Get_Struct(mrb, self, &mrb_onig_region_type, reg);
+  match_data_check_index();
+  mrb_value ret = mrb_ary_new_capa(mrb, 2);
+  mrb_ary_push(mrb, ret, mrb_fixnum_value(reg->beg[idx]));
+  mrb_ary_push(mrb, ret, mrb_fixnum_value(reg->end[idx]));
+  return ret;
+}
+
+// ISO 15.2.16.3.8
+static mrb_value
+match_data_post_match(mrb_state* mrb, mrb_value self) {
+  OnigRegion* reg;
+  Data_Get_Struct(mrb, self, &mrb_onig_region_type, reg);
+  mrb_value str = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "string"));
+  return mrb_str_substr(mrb, str, reg->end[0], RSTRING_LEN(str) - reg->end[0]);
+}
+
+// ISO 15.2.16.3.9
+static mrb_value
+match_data_pre_match(mrb_state* mrb, mrb_value self) {
+  OnigRegion* reg;
+  Data_Get_Struct(mrb, self, &mrb_onig_region_type, reg);
+  mrb_value str = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "string"));
+  return mrb_str_substr(mrb, str, 0, reg->beg[0]);
+}
+
+// ISO 15.2.16.3.11
+static mrb_value
+match_data_string(mrb_state* mrb, mrb_value self) {
+  return mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "string"));
+}
+
+static mrb_value
+match_data_regexp(mrb_state* mrb, mrb_value self) {
+  return mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "regexp"));
+}
+
+// ISO 15.2.16.3.12
+static mrb_value
+match_data_to_a(mrb_state* mrb, mrb_value self) {
+  mrb_value cache = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "cache"));
+  if(!mrb_nil_p(cache)) {
+    return cache;
+  }
+
+  mrb_value str = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "string"));
+  OnigRegion* reg;
+  Data_Get_Struct(mrb, self, &mrb_onig_region_type, reg);
+
+  mrb_value ret = mrb_ary_new_capa(mrb, reg->num_regs);
+  int i, ai = mrb_gc_arena_save(mrb);
+  for(i = 0; i < reg->num_regs; ++i) {
+    mrb_ary_push(mrb, ret, mrb_str_substr(mrb, str, reg->beg[i], reg->end[i] - reg->beg[i]));
+    mrb_gc_arena_restore(mrb, ai);
+  }
+  return ret;
+}
+
+// ISO 15.2.16.3.13
+static mrb_value
+match_data_to_s(mrb_state* mrb, mrb_value self) {
+  mrb_value str = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "string"));
+  OnigRegion* reg;
+  Data_Get_Struct(mrb, self, &mrb_onig_region_type, reg);
+  return mrb_str_substr(mrb, str, reg->beg[0], reg->end[0] - reg->beg[0]);
+}
+
 void
 mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
   struct RClass *clazz;
@@ -157,6 +304,31 @@ mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
   mrb_define_method(mrb, clazz, "casefold?", onig_regexp_casefold_p, ARGS_NONE());
 
   mrb_define_module_function(mrb, clazz, "version", onig_regexp_version, MRB_ARGS_NONE());
+
+  struct RClass* match_data = mrb_define_class(mrb, "OnigMatchData", mrb->object_class);
+  MRB_SET_INSTANCE_TT(clazz, MRB_TT_DATA);
+  mrb_undef_class_method(mrb, match_data, "new");
+
+  // mrb_define_method(mrb, match_data, "==", &match_data_eq);
+  mrb_define_method(mrb, match_data, "[]", &match_data_index, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, match_data, "begin", &match_data_begin, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, match_data, "captures", &match_data_captures, MRB_ARGS_NONE());
+  mrb_define_method(mrb, match_data, "end", &match_data_end, MRB_ARGS_REQ(1));
+  // mrb_define_method(mrb, match_data, "eql?", &match_data_eq);
+  // mrb_define_method(mrb, match_data, "hash", &match_data_hash);
+  mrb_define_method(mrb, match_data, "initialize_copy", &match_data_copy, MRB_ARGS_REQ(1));
+  // mrb_define_method(mrb, match_data, "inspect", &match_data_inspect);
+  mrb_define_method(mrb, match_data, "length", &match_data_length, MRB_ARGS_NONE());
+  // mrb_define_method(mrb, match_data, "names", &match_data_names);
+  mrb_define_method(mrb, match_data, "offset", &match_data_offset, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, match_data, "post_match", &match_data_post_match, MRB_ARGS_NONE());
+  mrb_define_method(mrb, match_data, "pre_match", &match_data_pre_match, MRB_ARGS_NONE());
+  mrb_define_method(mrb, match_data, "regexp", &match_data_regexp, MRB_ARGS_NONE());
+  mrb_define_method(mrb, match_data, "size", &match_data_length, MRB_ARGS_NONE());
+  mrb_define_method(mrb, match_data, "string", &match_data_string, MRB_ARGS_NONE());
+  mrb_define_method(mrb, match_data, "to_a", &match_data_to_a, MRB_ARGS_NONE());
+  mrb_define_method(mrb, match_data, "to_s", &match_data_to_s, MRB_ARGS_NONE());
+  // mrb_define_method(mrb, match_data, "values_at", &match_data_values_at);
 }
 
 void

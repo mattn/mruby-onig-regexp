@@ -83,3 +83,77 @@ end
 assert('OnigRegexp.version') do
   OnigRegexp.version.kind_of? String
 end
+
+def onig_match_data_example
+  OnigRegexp.new('(\w+)(\w)').match('+aaabb-')
+end
+
+assert('OnigMatchData#[]') do
+  m = onig_match_data_example
+  assert_equal 'aaabb', m[0]
+  assert_equal 'aaab', m[1]
+  assert_equal 'b', m[2]
+  assert_nil m[3]
+end
+
+assert('OnigMatchData#begin') do
+  m = onig_match_data_example
+  assert_equal 1, m.begin(0)
+  assert_equal 1, m.begin(1)
+  assert_raise(IndexError) { m.begin 3 }
+end
+
+assert('OnigMatchData#captures') do
+  m = onig_match_data_example
+  assert_equal ['aaab', 'b'], m.captures
+end
+
+assert('OnigMatchData#end') do
+  m = onig_match_data_example
+  assert_equal 6, m.end(0)
+  assert_equal 5, m.end(1)
+  assert_raise(IndexError) { m.end 3 }
+end
+
+assert('OnigMatchData#initialize_copy') do
+  m = onig_match_data_example
+  c = m.dup
+  assert_equal m.to_a, c.to_a
+end
+
+assert('OnigMatchData#length') do
+  assert_equal 3, onig_match_data_example.length
+end
+
+assert('OnigMatchData#offset') do
+  assert_equal [1, 6], onig_match_data_example.offset(0)
+  assert_equal [1, 5], onig_match_data_example.offset(1)
+end
+
+assert('OnigMatchData#post_match') do
+  assert_equal '-', onig_match_data_example.post_match
+end
+
+assert('OnigMatchData#pre_match') do
+  assert_equal '+', onig_match_data_example.pre_match
+end
+
+assert('OnigMatchData#size') do
+  assert_equal 3, onig_match_data_example.length
+end
+
+assert('OnigMatchData#string') do
+  assert_equal '+aaabb-', onig_match_data_example.string
+end
+
+assert('OnigMatchData#to_a') do
+  assert_equal ['aaabb', 'aaab', 'b'], onig_match_data_example.to_a
+end
+
+assert('OnigMatchData#to_s') do
+  assert_equal 'aaabb', onig_match_data_example.to_s
+end
+
+assert('OnigMatchData#regexp') do
+  assert_equal '(\w+)(\w)', onig_match_data_example.regexp.source
+end
