@@ -18,8 +18,11 @@ static struct mrb_data_type mrb_onig_regexp_type = {
   "PosixRegexp", onig_regexp_free
 };
 
-static void
-onig_regexp_init(mrb_state *mrb, mrb_value self, mrb_value str, mrb_value flag) {
+static mrb_value
+onig_regexp_initialize(mrb_state *mrb, mrb_value self) {
+  mrb_value str, flag = mrb_nil_value();
+  mrb_get_args(mrb, "S|o", &str, &flag);
+
   int cflag = 0;
   OnigSyntaxType* syntax = ONIG_SYNTAX_RUBY;
   if(mrb_nil_p(flag)) {
@@ -50,15 +53,8 @@ onig_regexp_init(mrb_state *mrb, mrb_value self, mrb_value str, mrb_value flag) 
 
   DATA_PTR(self) = reg;
   DATA_TYPE(self) = &mrb_onig_regexp_type;
-}
 
-static mrb_value
-onig_regexp_initialize(mrb_state *mrb, mrb_value self) {
-  mrb_value source, flag = mrb_nil_value();
-
-  mrb_get_args(mrb, "S|o", &source, &flag);
-  onig_regexp_init(mrb, self, source, flag);
-  return mrb_nil_value();
+  return self;
 }
 
 static mrb_value
