@@ -88,6 +88,10 @@ def onig_match_data_example
   OnigRegexp.new('(\w+)(\w)').match('+aaabb-')
 end
 
+assert('OnigMatchData.new') do
+  assert_raise(NoMethodError) { OnigMatchData.new('aaa', 'i') }
+end
+
 assert('OnigMatchData#[]') do
   m = onig_match_data_example
   assert_equal 'aaabb', m[0]
