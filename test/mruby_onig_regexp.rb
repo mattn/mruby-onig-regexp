@@ -80,3 +80,6 @@ assert("OnigRegexp#match (ignorecase)") do
   end
 end
 
+assert('OnigRegexp.version') do
+  OnigRegexp.version.kind_of? String
+end
