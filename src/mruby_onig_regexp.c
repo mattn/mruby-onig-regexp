@@ -98,7 +98,7 @@ onig_regexp_match(mrb_state *mrb, mrb_value self) {
   mrb_iv_set(mrb, c, mrb_intern_lit(mrb, "string"), mrb_str_dup(mrb, str));
   mrb_iv_set(mrb, c, mrb_intern_lit(mrb, "regexp"), self);
 
-  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@last_match"), c);
+  mrb_obj_iv_set(mrb, (struct RObject *)mrb_class_real(RDATA(self)->c), mrb_intern_lit(mrb, "@last_match"), c);
   return c;
 }
 
