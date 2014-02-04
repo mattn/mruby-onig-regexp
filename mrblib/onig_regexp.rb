@@ -34,94 +34,11 @@ class String
       false
     end
   end
-  alias_method :old_sub, :sub
-  def sub(*args, &blk)
-    if args[0].class.to_s == 'String'
-      return blk ? old_sub(*args) {|x| blk.call(x)} : old_sub(*args)
-    end
-    begin
-      m = args[0].match(self)
-    rescue
-      return self
-    end
-    return self if m.size == 0
-    r = ''
-    r += m.pre_match
-    r += blk ? blk.call(m[0]) : args[1]
-    r += m.post_match
-    r
-  end
-  alias_method :old_gsub, :gsub
-  def gsub(*args, &blk)
-    if args[0].class.to_s == 'String'
-      return blk ? old_gsub(*args) {|x| blk.call(x)} : old_gsub(*args)
-    end
-    ss = self
-    r = ''
-    while true
-      begin
-        m = args[0].match(ss)
-      rescue
-        break
-      end
-	  break if !m || m.size == 0
-      return r if m.end(0) == 0
-      r += m.pre_match
-      r += blk ? blk.call(m[0]) : args[1]
-      ss = m.post_match
-    end
-    r += ss
-    r
-  end
-  alias_method :old_split, :split
-  def split(*args)
-    return old_split(' ') if args[0] == nil
-    return old_split(*args) if args[0].class.to_s == 'String'
-    ss = self
-    r = []
-    l = args.size == 2 ? args[1].to_i : 0
-    while true
-      begin
-        m = args[0].match(ss)
-      rescue
-        break
-      end
-	  break if !m || m.size == 0
-      return r if m.end(0) == 0
-      r << m.pre_match
-      (1..m.size-1).each do |x|
-        r << m[x] unless m[x].empty?
-      end
-      ss = m.post_match
-      l -= 1
-      break unless l
-    end
-    r << ss
-    r
-  end
-  alias_method :old_scan, :scan
-  def scan(*args, &blk)
-    return old_scan(*args) if args[0].class.to_s == 'String'
-    ss = self
-    r = []
-	while true
-      begin
-        m = args[0].match(ss)
-      rescue
-        return []
-      end
-	  break if !m || m.size == 0
-      return r if m.end(0) == 0
-      r << m[0]
-      ss = m.post_match
-    end
-    if blk
-      r.each do |x|
-        blk.call(x)
-      end
-      return self
-    end
-    r
+
+  # redefine methods with oniguruma regexp version
+  [:sub, :gsub, :split, :scan].each do |v|
+    alias_method "string_#{v}".to_sym, v
+    alias_method v, "onig_regexp_#{v}".to_sym
   end
 end
 
