@@ -161,3 +161,60 @@ end
 assert('OnigMatchData#regexp') do
   assert_equal '(\w+)(\w)', onig_match_data_example.regexp.source
 end
+
+assert('Invalid regexp') do
+  assert_raise(ArgumentError) { OnigRegexp.new '[aio' }
+end
+
+assert('String#onig_regexp_gsub') do
+  test_str = 'hello mruby'
+  assert_equal 'h*ll* mr*by', test_str.onig_regexp_gsub(OnigRegexp.new('[aeiou]'), '*')
+  assert_equal 'h<e>ll<o> mr<u>by', test_str.onig_regexp_gsub(OnigRegexp.new('([aeiou])'), '<\1>')
+  assert_equal 'h e l l o  m r u b y ', test_str.onig_regexp_gsub(OnigRegexp.new('\w')) { |v| v + ' ' }
+  assert_equal 'h{e}ll{o} mr{u}by', test_str.onig_regexp_gsub(OnigRegexp.new('(?<hoge>[aeiou])'), '{\k<hoge>}')
+  assert_raise(IndexError) { test_str.onig_regexp_gsub(OnigRegexp.new('(mruby)'), '<\2>') }
+end
+
+assert('String#onig_regexp_scan') do
+  test_str = 'mruby world'
+  assert_equal ['mruby', 'world'], test_str.onig_regexp_scan(OnigRegexp.new('\w+'))
+  assert_equal ['mru', 'by ', 'wor'], test_str.onig_regexp_scan(OnigRegexp.new('...'))
+  assert_equal [['mru'], ['by '], ['wor']], test_str.onig_regexp_scan(OnigRegexp.new('(...)'))
+  assert_equal [['mr', 'ub'], ['y ', 'wo']], test_str.onig_regexp_scan(OnigRegexp.new('(..)(..)'))
+
+  result = []
+  assert_equal test_str, test_str.onig_regexp_scan(OnigRegexp.new('\w+')) { |v| result << "<<#{v}>>" }
+  assert_equal ['<<mruby>>', '<<world>>'], result
+
+  result = ''
+  assert_equal test_str, test_str.onig_regexp_scan(OnigRegexp.new('(.)(.)')) { |x, y| result += y; result += x }
+  assert_equal 'rmbu yowlr', result
+end
+
+assert('String#onig_regexp_sub') do
+  test_str = 'hello mruby'
+  assert_equal 'h*llo mruby', test_str.onig_regexp_sub(OnigRegexp.new('[aeiou]'), '*')
+  assert_equal 'h<e>llo mruby', test_str.onig_regexp_sub(OnigRegexp.new('([aeiou])'), '<\1>')
+  assert_equal 'h ello mruby', test_str.onig_regexp_sub(OnigRegexp.new('\w')) { |v| v + ' ' }
+  assert_equal 'h{e}llo mruby', test_str.onig_regexp_sub(OnigRegexp.new('(?<hoge>[aeiou])'), '{\k<hoge>}')
+end
+
+assert('String#onig_regexp_split') do
+  test_str = 'cute mruby cute'
+  assert_equal ['cute', 'mruby', 'cute'], test_str.onig_regexp_split
+  assert_equal ['cute', 'mruby', 'cute'], test_str.onig_regexp_split(OnigRegexp.new(' '))
+
+  assert_equal ['h', 'e', 'l', 'l', 'o'], 'hello'.onig_regexp_split(OnigRegexp.new(''))
+  assert_equal ['h', 'e', 'llo'], 'hello'.onig_regexp_split(OnigRegexp.new(''), 3)
+  # TODO: assert_equal ['h', 'i', 'd', 'a', 'd'], 'hi dad'.onig_regexp_split(OnigRegexp.new('\s*'))
+
+  test_str = '1, 2, 3, 4, 5,, 6'
+  assert_equal ['1', '2', '3', '4', '5', '', '6'], test_str.onig_regexp_split(OnigRegexp.new(',\s*'))
+
+  test_str = '1,,2,3,,4,,'
+  assert_equal ['1', '', '2', '3', '', '4'], test_str.onig_regexp_split(OnigRegexp.new(','))
+  assert_equal ['1', '', '2', '3,,4,,'], test_str.onig_regexp_split(OnigRegexp.new(','), 4)
+  assert_equal ['1', '', '2', '3', '', '4', '', ''], test_str.onig_regexp_split(OnigRegexp.new(','), -4)
+
+  assert_equal [], ''.onig_regexp_split(OnigRegexp.new(','), -1)
+end
