@@ -1,6 +1,7 @@
 class OnigRegexp
   @memo = {}
 
+  # ISO 15.2.15.6.1
   def self.compile(*args)
     as = args.to_s
     unless @memo.key? as
@@ -9,24 +10,28 @@ class OnigRegexp
     @memo[as]
   end
 
-  # ISO 15.2.15.7.8
-  attr_reader :source
-
+  # ISO 15.2.15.6.3
   def self.last_match
     @last_match
   end
 
+  # ISO 15.2.15.7.4
   def ===(str)
     not self.match(str).nil?
   end
 
+  # ISO 15.2.15.7.5
   def =~(str)
     m = self.match(str)
     m ? m.begin(0) : nil
   end
+
+  # ISO 15.2.15.7.8
+  attr_reader :source
 end
 
 class String
+  # ISO 15.2.10.5.5
   def =~(a)
     begin
       (a.class.to_s == 'String' ?  Regexp.new(a.to_s) : a) =~ self
