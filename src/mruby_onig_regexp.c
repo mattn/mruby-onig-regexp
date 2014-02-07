@@ -457,7 +457,12 @@ string_scan(mrb_state* mrb, mrb_value self) {
 static mrb_value
 string_split(mrb_state* mrb, mrb_value self) {
   mrb_value pattern = mrb_nil_value(); mrb_int limit = 0;
-  int const argc = mrb_get_args(mrb, "|oi", &pattern, &limit);
+  int argc = mrb_get_args(mrb, "|oi", &pattern, &limit);
+
+  if(argc == 0) { // check $; global variable
+    pattern = mrb_gv_get(mrb, mrb_intern_lit(mrb, "$;"));
+    if(!mrb_nil_p(pattern)) { argc = 1; }
+  }
 
   if(mrb_nil_p(pattern) || mrb_string_p(pattern)) {
     return mrb_funcall(mrb, self, "string_split", argc, pattern, mrb_fixnum_value(limit));
