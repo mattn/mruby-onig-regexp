@@ -185,7 +185,7 @@ match_data_actual_index(mrb_state* mrb, mrb_value self, mrb_value idx_value) {
       (OnigRegex)DATA_PTR(regexp), (OnigUChar const*)name, (OnigUChar const*)name_end,
       (OnigRegion*)DATA_PTR(self));
   if (idx < 0) {
-    mrb_raisef(mrb, E_INDEX_ERROR, "invalid group name reference: %S", idx_value);
+    mrb_raisef(mrb, E_INDEX_ERROR, "undefined group name reference: %S", idx_value);
   }
   return idx;
 }
@@ -358,7 +358,7 @@ append_replace_str(mrb_state* mrb, mrb_value result, mrb_value replace,
         int const idx = onig_name_to_backref_number(
             reg, (OnigUChar const*)name_beg, (OnigUChar const*)ch, match);
         if (idx < 0) {
-          mrb_raisef(mrb, E_REGEXP_ERROR, "invalid group name reference: %S",
+          mrb_raisef(mrb, E_INDEX_ERROR, "undefined group name reference: %S",
                      mrb_str_substr(mrb, replace, name_beg - RSTRING_PTR(replace), ch - name_beg));
         }
         mrb_str_cat(mrb, result, RSTRING_PTR(src) + match->beg[idx], match->end[idx] - match->beg[idx]);
@@ -372,7 +372,7 @@ append_replace_str(mrb_state* mrb, mrb_value result, mrb_value replace,
         if (isdigit(*ch)) { // group number 0-9
           int const idx = *ch - '0';
           if (idx >= match->num_regs) {
-            mrb_raisef(mrb, E_INDEX_ERROR, "invalid group number reference: %S (max: %S)",
+            mrb_raisef(mrb, E_INDEX_ERROR, "undefined group number reference: %S (max: %S)",
                        mrb_fixnum_value(idx), mrb_fixnum_value(match->num_regs));
           }
           mrb_str_cat(mrb, result, RSTRING_PTR(src) + match->beg[idx], match->end[idx] - match->beg[idx]);
