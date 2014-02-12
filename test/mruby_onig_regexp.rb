@@ -98,6 +98,13 @@ assert('OnigMatchData#[]') do
   assert_equal 'aaab', m[1]
   assert_equal 'b', m[2]
   assert_nil m[3]
+
+  m = OnigRegexp.new('(?<name>\w\w)').match('aba')
+  assert_raise(ArgumentError) { m[[]] }
+  assert_raise(IndexError) { m['nam'] }
+  assert_equal 'ab', m[:name]
+  assert_equal 'ab', m['name']
+  assert_equal 'ab', m[1]
 end
 
 assert('OnigMatchData#begin') do

@@ -159,27 +159,58 @@ onig_regexp_version(mrb_state* mrb, mrb_value self) {
 static mrb_value
 match_data_to_a(mrb_state* mrb, mrb_value self);
 
+static mrb_int
+match_data_actual_index(mrb_state* mrb, mrb_value self, mrb_value idx_value) {
+  if(mrb_fixnum_p(idx_value)) { return mrb_fixnum(idx_value); }
+
+  char const* name = NULL;
+  char const* name_end = NULL;
+  if(mrb_symbol_p(idx_value)) {
+    size_t sym_len;
+    name = mrb_sym2name_len(mrb, mrb_symbol(idx_value), &sym_len);
+    name_end = name + sym_len;
+  } else if(mrb_string_p(idx_value)) {
+    name = mrb_string_value_ptr(mrb, idx_value);
+    name_end = name + strlen(name);
+  } else {
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid MatchData index type: %S", idx_value);
+  }
+  mrb_assert(name && name_end);
+
+  mrb_value const regexp = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "regexp"));
+  mrb_assert(!mrb_nil_p(regexp));
+  mrb_assert(DATA_TYPE(regexp) == &mrb_onig_regexp_type);
+  mrb_assert(DATA_TYPE(self) == &mrb_onig_region_type);
+  int const idx = onig_name_to_backref_number(
+      (OnigRegex)DATA_PTR(regexp), (OnigUChar const*)name, (OnigUChar const*)name_end,
+      (OnigRegion*)DATA_PTR(self));
+  if (idx < 0) {
+    mrb_raisef(mrb, E_INDEX_ERROR, "invalid group name reference: %S", idx_value);
+  }
+  return idx;
+}
+
 // ISO 15.2.16.3.1
 static mrb_value
 match_data_index(mrb_state* mrb, mrb_value self) {
-  mrb_int idx;
-  mrb_get_args(mrb, "i", &idx);
-  mrb_value ary = match_data_to_a(mrb, self);
-  return mrb_ary_entry(ary, idx);
+  mrb_value idx_value;
+  mrb_get_args(mrb, "o", &idx_value);
+  return mrb_ary_entry(match_data_to_a(mrb, self), match_data_actual_index(mrb, self, idx_value));
 }
 
-#define match_data_check_index() \
+#define match_data_check_index(idx) \
   if(idx < 0 || reg->num_regs <= idx) \
     mrb_raisef(mrb, E_INDEX_ERROR, "index %S out of matches", mrb_fixnum_value(idx)) \
 
 // ISO 15.2.16.3.2
 static mrb_value
 match_data_begin(mrb_state* mrb, mrb_value self) {
-  mrb_int idx;
-  mrb_get_args(mrb, "i", &idx);
+  mrb_value idx_value;
+  mrb_get_args(mrb, "o", &idx_value);
   OnigRegion* reg;
   Data_Get_Struct(mrb, self, &mrb_onig_region_type, reg);
-  match_data_check_index();
+  mrb_int const idx = match_data_actual_index(mrb, self, idx_value);
+  match_data_check_index(idx);
   return mrb_fixnum_value(reg->beg[idx]);
 }
 
@@ -193,11 +224,12 @@ match_data_captures(mrb_state* mrb, mrb_value self) {
 // ISO 15.2.16.3.4
 static mrb_value
 match_data_end(mrb_state* mrb, mrb_value self) {
-  mrb_int idx;
-  mrb_get_args(mrb, "i", &idx);
+  mrb_value idx_value;
+  mrb_get_args(mrb, "o", &idx_value);
   OnigRegion* reg;
   Data_Get_Struct(mrb, self, &mrb_onig_region_type, reg);
-  match_data_check_index();
+  mrb_int const idx = match_data_actual_index(mrb, self, idx_value);
+  match_data_check_index(idx);
   return mrb_fixnum_value(reg->end[idx]);
 }
 
@@ -232,11 +264,12 @@ match_data_length(mrb_state* mrb, mrb_value self) {
 // ISO 15.2.16.3.7
 static mrb_value
 match_data_offset(mrb_state* mrb, mrb_value self) {
-  mrb_int idx;
-  mrb_get_args(mrb, "i", &idx);
+  mrb_value idx_value;
+  mrb_get_args(mrb, "o", &idx_value);
   OnigRegion* reg;
   Data_Get_Struct(mrb, self, &mrb_onig_region_type, reg);
-  match_data_check_index();
+  mrb_int const idx = match_data_actual_index(mrb, self, idx_value);
+  match_data_check_index(idx);
   mrb_value ret = mrb_ary_new_capa(mrb, 2);
   mrb_ary_push(mrb, ret, mrb_fixnum_value(reg->beg[idx]));
   mrb_ary_push(mrb, ret, mrb_fixnum_value(reg->end[idx]));
