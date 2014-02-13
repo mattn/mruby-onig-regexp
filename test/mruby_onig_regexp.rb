@@ -232,3 +232,41 @@ assert('String#onig_regexp_split') do
 
   assert_equal [], ''.onig_regexp_split(OnigRegexp.new(','), -1)
 end
+
+if Regexp == OnigRegexp
+  # global variables
+  assert('$~') do
+    m = onig_match_data_example
+    assert_equal m[0], $~[0]
+  end
+
+  assert('$&') do
+    m = onig_match_data_example
+    assert_equal m[0], $&
+  end
+
+  assert('$`') do
+    m = onig_match_data_example
+    assert_equal m.pre_match, $`
+  end
+
+  assert('$\'') do
+    m = onig_match_data_example
+    assert_equal m.post_match, $'
+  end
+
+  assert('$+') do
+    m = onig_match_data_example
+    assert_equal m[-1], $+
+  end
+
+  assert('$1') do
+    onig_match_data_example
+    assert_equal 'aaab', $1
+  end
+
+  assert('$2') do
+    onig_match_data_example
+    assert_equal 'b', $2
+  end
+end

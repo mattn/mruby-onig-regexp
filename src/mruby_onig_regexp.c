@@ -96,8 +96,34 @@ onig_match_common(mrb_state* mrb, OnigRegex reg, mrb_value match_value, mrb_valu
     mrb_raise(mrb, E_REGEXP_ERROR, err);
   }
 
-  mrb_obj_iv_set(mrb, (struct RObject *)mrb_class_get(mrb, "OnigRegexp"),
-                 mrb_intern_lit(mrb, "@last_match"), match_value);
+  struct RObject* const cls = (struct RObject*)mrb_class_get(mrb, "OnigRegexp");
+  mrb_obj_iv_set(mrb, cls, mrb_intern_lit(mrb, "@last_match"), match_value);
+
+  if (result != ONIG_MISMATCH &&
+      mrb_class_get(mrb, "Regexp") == (struct RClass*)cls)
+  {
+    mrb_gv_set(mrb, mrb_intern_lit(mrb, "$~"), match_value);
+    mrb_gv_set(mrb, mrb_intern_lit(mrb, "$&"),
+               mrb_funcall(mrb, match_value, "[]", 1, mrb_fixnum_value(0)));
+    mrb_gv_set(mrb, mrb_intern_lit(mrb, "$`"), mrb_funcall(mrb, match_value, "pre_match", 0));
+    mrb_gv_set(mrb, mrb_intern_lit(mrb, "$'"), mrb_funcall(mrb, match_value, "post_match", 0));
+    mrb_gv_set(mrb, mrb_intern_lit(mrb, "$+"),
+               mrb_funcall(mrb, match_value, "[]", 1, mrb_fixnum_value(match->num_regs - 1)));
+
+    // $1 to $9
+    int idx = 1;
+    int const idx_max = match->num_regs > 10? 10 : match->num_regs;
+    for(; idx < idx_max; ++idx) {
+      char const n[] = { '$', '0' + idx };
+      mrb_gv_set(mrb, mrb_intern(mrb, n, 2),
+                 mrb_funcall(mrb, match_value, "[]", 1, mrb_fixnum_value(idx)));
+    }
+
+    for(; idx < 10; ++idx) {
+      char const n[] = { '$', '0' + idx };
+      mrb_gv_remove(mrb, mrb_intern(mrb, n, 2));
+    }
+  }
 
   return result;
 }
