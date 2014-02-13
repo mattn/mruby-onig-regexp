@@ -647,6 +647,7 @@ onig_regexp_set_set_global_variables(mrb_state* mrb, mrb_value self) {
   return ret;
 }
 
+// ISO 15.2.15.6.2
 static mrb_value
 onig_regexp_escape(mrb_state* mrb, mrb_value self) {
   char const* str_begin; int str_len;
