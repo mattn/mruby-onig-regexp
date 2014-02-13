@@ -657,9 +657,9 @@ mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
   // enable global variables setting in onig_match_common by default
   mrb_obj_iv_set(mrb, (struct RObject*)clazz, mrb_intern_lit(mrb, "@set_global_variables"), mrb_true_value());
 
-  mrb_define_const(mrb, clazz, "IGNORECASE", mrb_fixnum_value(1));
-  mrb_define_const(mrb, clazz, "EXTENDED", mrb_fixnum_value(2));
-  mrb_define_const(mrb, clazz, "MULTILINE", mrb_fixnum_value(4));
+  mrb_define_const(mrb, clazz, "IGNORECASE", mrb_fixnum_value(ONIG_OPTION_IGNORECASE));
+  mrb_define_const(mrb, clazz, "EXTENDED", mrb_fixnum_value(ONIG_OPTION_EXTEND));
+  mrb_define_const(mrb, clazz, "MULTILINE", mrb_fixnum_value(ONIG_OPTION_MULTILINE));
 
   mrb_define_method(mrb, clazz, "initialize", onig_regexp_initialize, ARGS_REQ(1) | ARGS_OPT(2));
   mrb_define_method(mrb, clazz, "==", onig_regexp_equal, ARGS_REQ(1));
