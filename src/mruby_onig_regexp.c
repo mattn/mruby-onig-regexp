@@ -100,7 +100,8 @@ onig_match_common(mrb_state* mrb, OnigRegex reg, mrb_value match_value, mrb_valu
   mrb_obj_iv_set(mrb, cls, mrb_intern_lit(mrb, "@last_match"), match_value);
 
   if (result != ONIG_MISMATCH &&
-      mrb_class_get(mrb, "Regexp") == (struct RClass*)cls)
+      mrb_class_get(mrb, "Regexp") == (struct RClass*)cls &&
+      mrb_bool(mrb_obj_iv_get(mrb, (struct RObject*)cls, mrb_intern_lit(mrb, "@set_global_variables"))))
   {
     mrb_gv_set(mrb, mrb_intern_lit(mrb, "$~"), match_value);
     mrb_gv_set(mrb, mrb_intern_lit(mrb, "$&"),
@@ -612,12 +613,49 @@ string_sub(mrb_state* mrb, mrb_value self) {
   return result;
 }
 
+static mrb_value
+onig_regexp_clear_global_variables(mrb_state* mrb, mrb_value self) {
+  mrb_gv_remove(mrb, mrb_intern_lit(mrb, "$~"));
+  mrb_gv_remove(mrb, mrb_intern_lit(mrb, "$&"));
+  mrb_gv_remove(mrb, mrb_intern_lit(mrb, "$`"));
+  mrb_gv_remove(mrb, mrb_intern_lit(mrb, "$'"));
+  mrb_gv_remove(mrb, mrb_intern_lit(mrb, "$+"));
+
+  int idx;
+  for(idx = 1; idx < 10; ++idx) {
+    char const n[] = { '$', '0' + idx };
+    mrb_gv_remove(mrb, mrb_intern(mrb, n, 2));
+  }
+
+  return self;
+}
+
+static mrb_value
+onig_regexp_does_set_global_variables(mrb_state* mrb, mrb_value self) {
+  (void)self;
+  return mrb_obj_iv_get(mrb, (struct RObject*)mrb_class_get(mrb, "OnigRegexp"),
+                        mrb_intern_lit(mrb, "@set_global_variables"));
+}
+static mrb_value
+onig_regexp_set_set_global_variables(mrb_state* mrb, mrb_value self) {
+  mrb_value arg;
+  mrb_get_args(mrb, "o", &arg);
+  mrb_value const ret = mrb_bool_value(mrb_bool(arg));
+  mrb_obj_iv_set(mrb, (struct RObject*)mrb_class_get(mrb, "OnigRegexp"),
+                 mrb_intern_lit(mrb, "@set_global_variables"), ret);
+  onig_regexp_clear_global_variables(mrb, self);
+  return ret;
+}
+
 void
 mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
   struct RClass *clazz;
 
   clazz = mrb_define_class(mrb, "OnigRegexp", mrb->object_class);
   MRB_SET_INSTANCE_TT(clazz, MRB_TT_DATA);
+
+  // enable global variables setting in onig_match_common by default
+  mrb_obj_iv_set(mrb, (struct RObject*)clazz, mrb_intern_lit(mrb, "@set_global_variables"), mrb_true_value());
 
   mrb_define_const(mrb, clazz, "IGNORECASE", mrb_fixnum_value(1));
   mrb_define_const(mrb, clazz, "EXTENDED", mrb_fixnum_value(2));
@@ -629,6 +667,9 @@ mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
   mrb_define_method(mrb, clazz, "casefold?", onig_regexp_casefold_p, ARGS_NONE());
 
   mrb_define_module_function(mrb, clazz, "version", onig_regexp_version, MRB_ARGS_NONE());
+  mrb_define_module_function(mrb, clazz, "set_global_variables?", onig_regexp_does_set_global_variables, MRB_ARGS_NONE());
+  mrb_define_module_function(mrb, clazz, "set_global_variables=", onig_regexp_set_set_global_variables, MRB_ARGS_REQ(1));
+  mrb_define_module_function(mrb, clazz, "clear_global_variables", onig_regexp_clear_global_variables, MRB_ARGS_NONE());
 
   struct RClass* match_data = mrb_define_class(mrb, "OnigMatchData", mrb->object_class);
   MRB_SET_INSTANCE_TT(clazz, MRB_TT_DATA);
