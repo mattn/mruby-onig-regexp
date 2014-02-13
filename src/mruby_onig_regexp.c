@@ -71,20 +71,34 @@ onig_regexp_initialize(mrb_state *mrb, mrb_value self) {
   return self;
 }
 
-static int
-onig_match_common(mrb_state* mrb, OnigRegex reg, OnigRegion* match, mrb_value str, int pos) {
+static mrb_value
+create_onig_region(mrb_state* mrb, mrb_value const str, mrb_value rex) {
   mrb_assert(mrb_string_p(str));
+  mrb_assert(mrb_type(rex) == MRB_TT_DATA && DATA_TYPE(rex) == &mrb_onig_regexp_type);
+  mrb_value const c = mrb_obj_value(mrb_data_object_alloc(
+      mrb, mrb_class_get(mrb, "OnigMatchData"), onig_region_new(), &mrb_onig_region_type));
+  mrb_iv_set(mrb, c, mrb_intern_lit(mrb, "string"), mrb_str_dup(mrb, str));
+  mrb_iv_set(mrb, c, mrb_intern_lit(mrb, "regexp"), rex);
+  return c;
+}
+
+static int
+onig_match_common(mrb_state* mrb, OnigRegex reg, mrb_value match_value, mrb_value str, int pos) {
+  mrb_assert(mrb_string_p(str));
+  mrb_assert(DATA_TYPE(match_value) == &mrb_onig_region_type);
+  OnigRegion* const match = (OnigRegion*)DATA_PTR(match_value);
   OnigUChar const* str_ptr = (OnigUChar const*)RSTRING_PTR(str);
   int const result = onig_search(reg, str_ptr, str_ptr + RSTRING_LEN(str),
                                  str_ptr + pos, str_ptr + RSTRING_LEN(str), match, 0);
   if (result != ONIG_MISMATCH && result < 0) {
-    // free OnigRegion before raising error to avoid leak
-    onig_region_free(match, 1);
-
     char err[ONIG_MAX_ERROR_MESSAGE_LEN] = "";
     onig_error_code_to_str((OnigUChar*)err, result);
     mrb_raise(mrb, E_REGEXP_ERROR, err);
   }
+
+  mrb_obj_iv_set(mrb, (struct RObject *)mrb_class_get(mrb, "OnigRegexp"),
+                 mrb_intern_lit(mrb, "@last_match"), match_value);
+
   return result;
 }
 
@@ -101,20 +115,9 @@ onig_regexp_match(mrb_state *mrb, mrb_value self) {
 
   Data_Get_Struct(mrb, self, &mrb_onig_regexp_type, reg);
 
-  OnigRegion* match = onig_region_new();
-  int const match_result = onig_match_common(mrb, reg, match, str, pos);
-  if (match_result == ONIG_MISMATCH) {
-    onig_region_free(match, 1);
-    return mrb_nil_value();
-  }
-
-  mrb_value c = mrb_obj_value(mrb_data_object_alloc(
-      mrb, mrb_class_get(mrb, "OnigMatchData"), match, &mrb_onig_region_type));
-  mrb_iv_set(mrb, c, mrb_intern_lit(mrb, "string"), mrb_str_dup(mrb, str));
-  mrb_iv_set(mrb, c, mrb_intern_lit(mrb, "regexp"), self);
-
-  mrb_obj_iv_set(mrb, (struct RObject *)mrb_class_real(RDATA(self)->c), mrb_intern_lit(mrb, "@last_match"), c);
-  return c;
+  mrb_value const ret = create_onig_region(mrb, str, self);
+  return (onig_match_common(mrb, reg, ret, str, pos) == ONIG_MISMATCH)
+      ? mrb_nil_value() : ret;
 }
 
 static mrb_value
@@ -408,11 +411,12 @@ string_gsub(mrb_state* mrb, mrb_value self) {
   OnigRegex reg;
   Data_Get_Struct(mrb, match_expr, &mrb_onig_regexp_type, reg);
   mrb_value const result = mrb_str_new(mrb, NULL, 0);
-  OnigRegion* const match = onig_region_new();
+  mrb_value const match_value = create_onig_region(mrb, self, match_expr);
+  OnigRegion* const match = (OnigRegion*)DATA_PTR(match_value);
   int last_end_pos = 0;
 
   while(1) {
-    if(onig_match_common(mrb, reg, match, self, last_end_pos) == ONIG_MISMATCH) { break; }
+    if(onig_match_common(mrb, reg, match_value, self, last_end_pos) == ONIG_MISMATCH) { break; }
 
     mrb_str_cat(mrb, result, RSTRING_PTR(self) + last_end_pos, match->beg[0] - last_end_pos);
 
@@ -429,8 +433,6 @@ string_gsub(mrb_state* mrb, mrb_value self) {
   }
 
   mrb_str_cat(mrb, result, RSTRING_PTR(self) + last_end_pos, RSTRING_LEN(self) - last_end_pos);
-
-  onig_region_free(match, 1);
   return result;
 }
 
@@ -448,12 +450,13 @@ string_scan(mrb_state* mrb, mrb_value self) {
   OnigRegex reg;
   Data_Get_Struct(mrb, match_expr, &mrb_onig_regexp_type, reg);
   mrb_value const result = mrb_nil_p(blk)? mrb_ary_new(mrb) : self;
-  OnigRegion* const m = onig_region_new();
+  mrb_value m_value = create_onig_region(mrb, self, match_expr);
+  OnigRegion* const m = (OnigRegex*)DATA_PTR(m_value);
   int last_end_pos = 0;
   int i;
 
   while (1) {
-    if(onig_match_common(mrb, reg, m, self, last_end_pos) == ONIG_MISMATCH) { break; }
+    if(onig_match_common(mrb, reg, m_value, self, last_end_pos) == ONIG_MISMATCH) { break; }
 
     if(mrb_nil_p(blk)) {
       mrb_assert(mrb_array_p(result));
@@ -482,7 +485,6 @@ string_scan(mrb_state* mrb, mrb_value self) {
     last_end_pos = m->end[0];
   }
 
-  onig_region_free(m, 1);
   return result;
 }
 
@@ -506,12 +508,13 @@ string_split(mrb_state* mrb, mrb_value self) {
 
   OnigRegex reg;
   Data_Get_Struct(mrb, pattern, &mrb_onig_regexp_type, reg);
-  OnigRegion* const match = onig_region_new();
+  mrb_value const match_value = create_onig_region(mrb, self, pattern);
+  OnigRegion* const match = (OnigRegion*)DATA_PTR(match_value);
   int last_end_pos = 0;
 
   while (limit <= 0 || (limit - 1) > RARRAY_LEN(result)) {
     if(last_end_pos >= RSTRING_LEN(self) ||
-       onig_match_common(mrb, reg, match, self, last_end_pos) == ONIG_MISMATCH) { break; }
+       onig_match_common(mrb, reg, match_value, self, last_end_pos) == ONIG_MISMATCH) { break; }
 
     if (last_end_pos == match->end[0]) {
       mrb_ary_push(mrb, result, mrb_str_substr(mrb, self, last_end_pos, 1));
@@ -539,7 +542,6 @@ string_split(mrb_state* mrb, mrb_value self) {
     }
   }
 
-  onig_region_free(match, 1);
   return result;
 }
 
@@ -561,13 +563,11 @@ string_sub(mrb_state* mrb, mrb_value self) {
   OnigRegex reg;
   Data_Get_Struct(mrb, match_expr, &mrb_onig_regexp_type, reg);
   mrb_value const result = mrb_str_new(mrb, NULL, 0);
-  OnigRegion* const match = onig_region_new();
+  mrb_value const match_value = create_onig_region(mrb, self, match_expr);
+  OnigRegion* const match = (OnigRegion*)DATA_PTR(match_value);
 
-  int const onig_result = onig_match_common(mrb, reg, match, self, 0);
-  if(onig_result == ONIG_MISMATCH) {
-    onig_region_free(match, 1);
-    return self;
-  }
+  int const onig_result = onig_match_common(mrb, reg, match_value, self, 0);
+  if(onig_result == ONIG_MISMATCH) { return self; }
 
   mrb_str_cat(mrb, result, RSTRING_PTR(self), match->beg[0]);
 
@@ -583,7 +583,6 @@ string_sub(mrb_state* mrb, mrb_value self) {
   int const last_end_pos = match->end[0];
   mrb_str_cat(mrb, result, RSTRING_PTR(self) + last_end_pos, RSTRING_LEN(self) - last_end_pos);
 
-  onig_region_free(match, 1);
   return result;
 }
 
