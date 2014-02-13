@@ -233,40 +233,74 @@ assert('String#onig_regexp_split') do
   assert_equal [], ''.onig_regexp_split(OnigRegexp.new(','), -1)
 end
 
-if Regexp == OnigRegexp
-  # global variables
-  assert('$~') do
-    m = onig_match_data_example
-    assert_equal m[0], $~[0]
-  end
+prev_regexp = Regexp
 
-  assert('$&') do
-    m = onig_match_data_example
-    assert_equal m[0], $&
-  end
+Regexp = OnigRegexp
 
-  assert('$`') do
-    m = onig_match_data_example
-    assert_equal m.pre_match, $`
-  end
-
-  assert('$\'') do
-    m = onig_match_data_example
-    assert_equal m.post_match, $'
-  end
-
-  assert('$+') do
-    m = onig_match_data_example
-    assert_equal m[-1], $+
-  end
-
-  assert('$1') do
-    onig_match_data_example
-    assert_equal 'aaab', $1
-  end
-
-  assert('$2') do
-    onig_match_data_example
-    assert_equal 'b', $2
-  end
+# global variables
+assert('$~') do
+  m = onig_match_data_example
+  assert_equal m[0], $~[0]
 end
+
+assert('$&') do
+  m = onig_match_data_example
+  assert_equal m[0], $&
+end
+
+assert('$`') do
+  m = onig_match_data_example
+  assert_equal m.pre_match, $`
+end
+
+assert('$\'') do
+  m = onig_match_data_example
+  assert_equal m.post_match, $'
+end
+
+assert('$+') do
+  m = onig_match_data_example
+  assert_equal m[-1], $+
+end
+
+assert('$1 to $9') do
+  onig_match_data_example
+  assert_equal 'aaab', $1
+  assert_equal 'b', $2
+  assert_nil $3
+  assert_nil $4
+  assert_nil $5
+  assert_nil $6
+  assert_nil $7
+  assert_nil $8
+  assert_nil $9
+end
+
+assert('default OnigRegexp.set_global_variables?') do
+  assert_true OnigRegexp.set_global_variables?
+end
+
+assert('change set_global_variables') do
+  m = onig_match_data_example
+  assert_equal m[0], $~[0]
+
+  OnigRegexp.set_global_variables = false
+  assert_false OnigRegexp.set_global_variables?
+
+  # global variables must be cleared when OnigRegexp.set_global_variables gets change
+  assert_nil $~
+
+  onig_match_data_example
+  assert_nil $~
+
+  OnigRegexp.set_global_variables = true
+end
+
+Regexp = Object
+
+assert('OnigRegexp not default') do
+  onig_match_data_example
+  assert_nil $~
+end
+
+Regexp = prev_regexp
