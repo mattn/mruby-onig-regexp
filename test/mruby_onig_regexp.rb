@@ -304,3 +304,9 @@ assert('OnigRegexp not default') do
 end
 
 Regexp = prev_regexp
+
+assert('OnigRegexp.escape') do
+  escaping_chars = "\n\t\r\f #$()*+-.?[\\]^{|}"
+  assert_equal '\n\t\r\f\\ \#\$\(\)\*\+\-\.\?\[\\\\\]\^\{\|\}', OnigRegexp.escape(escaping_chars)
+  assert_equal 'cute\nmruby\tcute', OnigRegexp.escape("cute\nmruby\tcute")
+end

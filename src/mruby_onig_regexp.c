@@ -647,6 +647,55 @@ onig_regexp_set_set_global_variables(mrb_state* mrb, mrb_value self) {
   return ret;
 }
 
+static mrb_value
+onig_regexp_escape(mrb_state* mrb, mrb_value self) {
+  char const* str_begin; int str_len;
+  mrb_get_args(mrb, "s", &str_begin, &str_len);
+
+  mrb_value const ret = mrb_str_new(mrb, NULL, 0);
+  char escaped_char = 0;
+  int substr_count = 0;
+  char const* str = str_begin;
+
+  for(; str < (str_begin + str_len); ++str) {
+    switch(*str) {
+      case '\n': escaped_char = 'n'; break;
+      case '\t': escaped_char = 't'; break;
+      case '\r': escaped_char = 'r'; break;
+      case '\f': escaped_char = 'f'; break;
+
+      case ' ':
+      case '#':
+      case '$':
+      case '(':
+      case ')':
+      case '*':
+      case '+':
+      case '-':
+      case '.':
+      case '?':
+      case '[':
+      case '\\':
+      case ']':
+      case '^':
+      case '{':
+      case '|':
+      case '}':
+        escaped_char = *str; break;
+
+      default: ++substr_count; continue;
+    }
+
+    mrb_str_cat(mrb, ret, str - substr_count, substr_count);
+    substr_count = 0;
+
+    char const c[] = { '\\', escaped_char };
+    mrb_str_cat(mrb, ret, c, 2);
+  }
+  mrb_str_cat(mrb, ret, str - substr_count, substr_count);
+  return ret;
+}
+
 void
 mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
   struct RClass *clazz;
@@ -666,6 +715,7 @@ mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
   mrb_define_method(mrb, clazz, "match", onig_regexp_match, ARGS_REQ(1) | ARGS_OPT(1));
   mrb_define_method(mrb, clazz, "casefold?", onig_regexp_casefold_p, ARGS_NONE());
 
+  mrb_define_module_function(mrb, clazz, "escape", onig_regexp_escape, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, clazz, "version", onig_regexp_version, MRB_ARGS_NONE());
   mrb_define_module_function(mrb, clazz, "set_global_variables?", onig_regexp_does_set_global_variables, MRB_ARGS_NONE());
   mrb_define_module_function(mrb, clazz, "set_global_variables=", onig_regexp_set_set_global_variables, MRB_ARGS_REQ(1));
