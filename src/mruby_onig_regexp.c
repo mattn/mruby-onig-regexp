@@ -45,7 +45,7 @@ onig_regexp_initialize(mrb_state *mrb, mrb_value self) {
     if(int_flags & 0x2) { cflag |= ONIG_OPTION_EXTEND; }
     if(int_flags & 0x4) { cflag |= ONIG_OPTION_MULTILINE; }
   } else if(mrb_string_p(flag)) {
-    char const* str_flags = RSTRING_PTR(flag);
+    char const* str_flags = mrb_string_value_ptr(mrb, flag);
     if(strchr(str_flags, 'i')) { cflag |= ONIG_OPTION_IGNORECASE; }
     if(strchr(str_flags, 'x')) { cflag |= ONIG_OPTION_EXTEND; }
     if(strchr(str_flags, 'm')) { cflag |= ONIG_OPTION_MULTILINE; }
