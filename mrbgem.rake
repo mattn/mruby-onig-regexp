@@ -5,9 +5,6 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
   spec.linker.libraries << ['onig']
   next if ENV['OS'] == 'Windows_NT'
 
-  require 'rubygems'
-  require 'net/http'
-  require 'libarchive'
   require 'open3'
 
   version = '5.9.5'
@@ -23,22 +20,23 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
     FileUtils.mkdir_p oniguruma_dir
 
     _pp 'getting', "onig-#{version}"
-
-    Dir.chdir("#{oniguruma_dir}/..") do
-      Net::HTTP.start('www.geocities.jp') do |http|
-        Archive.read_open_memory(http.get("/kosako3/oniguruma/archive/onig-#{version}.tar.gz").body,
-                                 Archive::COMPRESSION_GZIP, Archive::FORMAT_TAR) do |arch|
-          while ent = arch.next_header
-            next if ent.directory?
-
-            FileUtils.mkdir_p File.dirname ent.pathname
-            File.open(ent.pathname, 'w+') do |f|
-              arch.read_data { |d| f.write d }
-            end
-            File.chmod ent.mode, ent.pathname
+    begin
+      FileUtils.mkdir_p build_dir
+      Dir.chdir(build_dir) do
+        File.open("onig-#{version}.tar.gz", 'w') do |f|
+          IO.popen("curl \"http://www.geocities.jp/kosako3/oniguruma/archive/onig-#{version}.tar.gz\"") do |io|
+            f.write io.read
           end
+          raise IOError unless $?.exitstatus
         end
+
+        _pp 'extracting', "onig-#{version}"
+        `tar -zxf onig-#{version}.tar.gz`
+        raise IOError unless $?.exitstatus
       end
+    rescue IOError
+      File.delete "onig-#{version}.tar.gz"
+      exit(-1)
     end
   end
 
