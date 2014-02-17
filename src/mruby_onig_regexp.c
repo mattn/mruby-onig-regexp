@@ -45,7 +45,7 @@ onig_regexp_initialize(mrb_state *mrb, mrb_value self) {
     if(int_flags & 0x2) { cflag |= ONIG_OPTION_EXTEND; }
     if(int_flags & 0x4) { cflag |= ONIG_OPTION_MULTILINE; }
   } else if(mrb_string_p(flag)) {
-    char const* str_flags = RSTRING_PTR(flag);
+    char const* str_flags = mrb_string_value_ptr(mrb, flag);
     if(strchr(str_flags, 'i')) { cflag |= ONIG_OPTION_IGNORECASE; }
     if(strchr(str_flags, 'x')) { cflag |= ONIG_OPTION_EXTEND; }
     if(strchr(str_flags, 'm')) { cflag |= ONIG_OPTION_MULTILINE; }
@@ -478,7 +478,7 @@ string_scan(mrb_state* mrb, mrb_value self) {
   Data_Get_Struct(mrb, match_expr, &mrb_onig_regexp_type, reg);
   mrb_value const result = mrb_nil_p(blk)? mrb_ary_new(mrb) : self;
   mrb_value m_value = create_onig_region(mrb, self, match_expr);
-  OnigRegion* const m = (OnigRegex*)DATA_PTR(m_value);
+  OnigRegion* const m = (OnigRegion*)DATA_PTR(m_value);
   int last_end_pos = 0;
   int i;
 
@@ -548,7 +548,7 @@ string_split(mrb_state* mrb, mrb_value self) {
       last_end_pos += 1;
     } else {
       mrb_ary_push(mrb, result, mrb_str_substr(
-          mrb, self, + last_end_pos, match->beg[0] - last_end_pos));
+          mrb, self, last_end_pos, match->beg[0] - last_end_pos));
       last_end_pos = match->end[0];
     }
   }
