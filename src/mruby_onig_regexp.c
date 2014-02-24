@@ -365,7 +365,7 @@ match_data_to_s(mrb_state* mrb, mrb_value self) {
   return mrb_str_substr(mrb, str, reg->beg[0], reg->end[0] - reg->beg[0]);
 }
 
-void
+static void
 append_replace_str(mrb_state* mrb, mrb_value result, mrb_value replace,
                    mrb_value src, OnigRegex reg, OnigRegion* match)
 {
@@ -537,19 +537,30 @@ string_split(mrb_state* mrb, mrb_value self) {
   Data_Get_Struct(mrb, pattern, &mrb_onig_regexp_type, reg);
   mrb_value const match_value = create_onig_region(mrb, self, pattern);
   OnigRegion* const match = (OnigRegion*)DATA_PTR(match_value);
-  int last_end_pos = 0;
+  int last_end_pos = 0, next_match_pos = 0;
+  mrb_int num_matches = 0;
 
-  while (limit <= 0 || (limit - 1) > RARRAY_LEN(result)) {
-    if(last_end_pos >= RSTRING_LEN(self) ||
-       onig_match_common(mrb, reg, match_value, self, last_end_pos) == ONIG_MISMATCH) { break; }
+  while (limit <= 0 || (limit - 1) > num_matches) {
+    int i;
+    if(next_match_pos >= RSTRING_LEN(self) ||
+       onig_match_common(mrb, reg, match_value, self, next_match_pos) == ONIG_MISMATCH) { break; }
 
     if (last_end_pos == match->end[0]) {
-      mrb_ary_push(mrb, result, mrb_str_substr(mrb, self, last_end_pos, 1));
-      last_end_pos += 1;
+      ++next_match_pos;
+      // Remove this loop if not using UTF-8
+      for (; next_match_pos < RSTRING_LEN(self) && (RSTRING_PTR(self)[next_match_pos] & 0xC0) == 0x80;
+          ++next_match_pos) {}
     } else {
       mrb_ary_push(mrb, result, mrb_str_substr(
           mrb, self, last_end_pos, match->beg[0] - last_end_pos));
+      // If there are captures, add them to the array
+      for (i = 1; i < match->num_regs; ++i) {
+        mrb_ary_push(mrb, result, mrb_str_substr(
+            mrb, self, match->beg[i], match->end[i] - match->beg[i]));
+      }
       last_end_pos = match->end[0];
+      next_match_pos = last_end_pos;
+      ++num_matches;
     }
   }
   if (last_end_pos <= RSTRING_LEN(self)) {
