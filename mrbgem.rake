@@ -3,7 +3,7 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
   spec.authors = 'mattn'
 
   spec.linker.libraries << ['onig']
-  #next if ENV['OS'] == 'Windows_NT'
+  next if ENV['OS'] == 'Windows_NT'
 
   require 'open3'
   require 'open-uri'
