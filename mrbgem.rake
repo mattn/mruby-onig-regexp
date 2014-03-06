@@ -6,6 +6,7 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
   next if ENV['OS'] == 'Windows_NT'
 
   require 'open3'
+  require 'open-uri'
 
   version = '5.9.5'
   oniguruma_dir = "#{build_dir}/onig-#{version}"
@@ -23,11 +24,10 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
     begin
       FileUtils.mkdir_p build_dir
       Dir.chdir(build_dir) do
-        File.open("onig-#{version}.tar.gz", 'w') do |f|
-          IO.popen("curl \"http://www.geocities.jp/kosako3/oniguruma/archive/onig-#{version}.tar.gz\"") do |io|
+        File.open("onig-#{version}.tar.gz", 'wb') do |f|
+          open("http://www.geocities.jp/kosako3/oniguruma/archive/onig-#{version}.tar.gz") do |io|
             f.write io.read
           end
-          raise IOError unless $?.exitstatus
         end
 
         _pp 'extracting', "onig-#{version}"
