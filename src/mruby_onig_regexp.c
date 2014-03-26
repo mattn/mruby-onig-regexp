@@ -197,7 +197,7 @@ match_data_actual_index(mrb_state* mrb, mrb_value self, mrb_value idx_value) {
   char const* name = NULL;
   char const* name_end = NULL;
   if(mrb_symbol_p(idx_value)) {
-    size_t sym_len;
+    mrb_int sym_len;
     name = mrb_sym2name_len(mrb, mrb_symbol(idx_value), &sym_len);
     name_end = name + sym_len;
   } else if(mrb_string_p(idx_value)) {
