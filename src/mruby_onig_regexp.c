@@ -123,7 +123,7 @@ onig_match_common(mrb_state* mrb, OnigRegex reg, mrb_value match_value, mrb_valu
 
     for(; idx < 10; ++idx) {
       char const n[] = { '$', '0' + idx };
-      mrb_gv_remove(mrb, mrb_intern(mrb, n, 2));
+      mrb_gv_set(mrb, mrb_intern(mrb, n, 2), mrb_nil_value());
     }
   }
 
