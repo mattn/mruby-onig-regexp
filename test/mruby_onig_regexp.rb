@@ -220,7 +220,7 @@ assert('String#onig_regexp_split') do
 
   assert_equal ['h', 'e', 'l', 'l', 'o'], 'hello'.onig_regexp_split(OnigRegexp.new(''))
   assert_equal ['h', 'e', 'llo'], 'hello'.onig_regexp_split(OnigRegexp.new(''), 3)
-  # TODO: assert_equal ['h', 'i', 'd', 'a', 'd'], 'hi dad'.onig_regexp_split(OnigRegexp.new('\s*'))
+  assert_equal ['h', 'i', 'd', 'a', 'd'], 'hi dad'.onig_regexp_split(OnigRegexp.new('\s*'))
 
   test_str = '1, 2, 3, 4, 5,, 6'
   assert_equal ['1', '2', '3', '4', '5', '', '6'], test_str.onig_regexp_split(OnigRegexp.new(',\s*'))
