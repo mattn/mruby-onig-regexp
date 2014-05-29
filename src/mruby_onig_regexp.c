@@ -11,6 +11,12 @@
 #include <mruby/variable.h>
 #include "oniguruma.h"
 
+#ifdef MRUBY_VERSION
+#define mrb_args_int mrb_int
+#else
+#define mrb_args_int int
+#endif
+
 static void
 onig_regexp_free(mrb_state *mrb, void *p) {
   onig_free((OnigRegex) p);
@@ -179,6 +185,13 @@ onig_regexp_casefold_p(mrb_state *mrb, mrb_value self) {
 
   Data_Get_Struct(mrb, self, &mrb_onig_regexp_type, reg);
   return (onig_get_options(reg) & ONIG_OPTION_IGNORECASE) ? mrb_true_value() : mrb_false_value();
+}
+
+static mrb_value
+onig_regexp_options(mrb_state *mrb, mrb_value self) {
+  OnigRegex reg;
+  Data_Get_Struct(mrb, self, &mrb_onig_regexp_type, reg);
+  return mrb_fixnum_value(onig_get_options(reg));
 }
 
 static mrb_value
@@ -662,7 +675,7 @@ onig_regexp_set_set_global_variables(mrb_state* mrb, mrb_value self) {
 // ISO 15.2.15.6.2
 static mrb_value
 onig_regexp_escape(mrb_state* mrb, mrb_value self) {
-  char const* str_begin; int str_len;
+  char* str_begin; mrb_args_int str_len;
   mrb_get_args(mrb, "s", &str_begin, &str_len);
 
   mrb_value const ret = mrb_str_new(mrb, NULL, 0);
@@ -728,7 +741,10 @@ mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
   mrb_define_method(mrb, clazz, "match", onig_regexp_match, ARGS_REQ(1) | ARGS_OPT(1));
   mrb_define_method(mrb, clazz, "casefold?", onig_regexp_casefold_p, ARGS_NONE());
 
+  mrb_define_method(mrb, clazz, "options", onig_regexp_options, MRB_ARGS_NONE());
+
   mrb_define_module_function(mrb, clazz, "escape", onig_regexp_escape, MRB_ARGS_REQ(1));
+  mrb_define_module_function(mrb, clazz, "quote", onig_regexp_escape, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, clazz, "version", onig_regexp_version, MRB_ARGS_NONE());
   mrb_define_module_function(mrb, clazz, "set_global_variables?", onig_regexp_does_set_global_variables, MRB_ARGS_NONE());
   mrb_define_module_function(mrb, clazz, "set_global_variables=", onig_regexp_set_set_global_variables, MRB_ARGS_REQ(1));

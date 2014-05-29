@@ -2,8 +2,12 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
   spec.license = 'MIT'
   spec.authors = 'mattn'
 
-  spec.linker.libraries << ['onig']
-  next if ENV['OS'] == 'Windows_NT'
+  spec.linker.libraries << 'onig'
+
+  next if build.kind_of? MRuby::CrossBuild or ENV['OS'] == 'Windows_NT'
+  if build.cc.respond_to? :search_header_path
+    next if build.cc.search_header_path 'oniguruma.h'
+  end
 
   require 'open3'
   require 'open-uri'
@@ -65,5 +69,4 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
   file "#{dir}/src/mruby_onig_regexp.c" => oniguruma_lib
   spec.cc.include_paths << oniguruma_dir
   spec.linker.library_paths << File.dirname(oniguruma_lib)
-  spec.linker.libraries << 'onig'
 end
