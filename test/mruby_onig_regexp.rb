@@ -6,12 +6,27 @@ end
 
 
 # Class method
-assert("OnigRegexp.new") do
-  OnigRegexp.new(".*") and OnigRegexp.new(".*", OnigRegexp::MULTILINE)
+assert('OnigRgexp.compile', '15.2.15.6.2') do
+  assert_equal OnigRegexp.compile('.*'), OnigRegexp.compile('.*')
+end
+
+assert('OnigRegexp.escape', '15.2.15.6.2') do
+  escaping_chars = "\n\t\r\f #$()*+-.?[\\]^{|}"
+  assert_equal '\n\t\r\f\\ \#\$\(\)\*\+\-\.\?\[\\\\\]\^\{\|\}', OnigRegexp.escape(escaping_chars)
+  assert_equal 'cute\nmruby\tcute', OnigRegexp.escape("cute\nmruby\tcute")
+end
+
+assert('OnigRegexp.last_match', '15.2.15.6.3') do
+  OnigRegexp.new('.*') =~ 'ginka'
+  assert_equal 'ginka', OnigRegexp.last_match[0]
 end
 
 # Instance method
-assert("OnigRegexp#==") do
+assert('OnigRegexp#initialize', '15.2.15.7.1') do
+  OnigRegexp.new(".*") and OnigRegexp.new(".*", OnigRegexp::MULTILINE)
+end
+
+assert("OnigRegexp#==", '15.2.15.7.3') do
   reg1 = reg2 = OnigRegexp.new("(https?://[^/]+)[-a-zA-Z0-9./]+")
   reg3 = OnigRegexp.new("(https?://[^/]+)[-a-zA-Z0-9./]+")
   reg4 = OnigRegexp.new("(https://[^/]+)[-a-zA-Z0-9./]+")
@@ -19,15 +34,18 @@ assert("OnigRegexp#==") do
   reg1 == reg2 and reg1 == reg3 and !(reg1 == reg4)
 end
 
-assert("OnigRegexp#===") do
+assert("OnigRegexp#===", '15.2.15.7.4') do
   reg = OnigRegexp.new("(https?://[^/]+)[-a-zA-Z0-9./]+")
   assert_true reg === "http://example.com"
   assert_false reg === "htt://example.com"
 end
 
-# TODO =~
+assert('OnigRegexp#=~', '15.2.15.7.5') do
+  assert_equal(0) { OnigRegexp.new('.*') =~ 'akari' }
+  assert_equal(nil) { OnigRegexp.new('t') =~ 'akari' }
+end
 
-assert("OnigRegexp#casefold?") do
+assert("OnigRegexp#casefold?", '15.2.15.7.6') do
   assert_false OnigRegexp.new("(https?://[^/]+)[-a-zA-Z0-9./]+", OnigRegexp::MULTILINE).casefold?
   assert_true OnigRegexp.new("(https?://[^/]+)[-a-zA-Z0-9./]+", OnigRegexp::IGNORECASE | OnigRegexp::EXTENDED).casefold?
   assert_true OnigRegexp.new("(https?://[^/]+)[-a-zA-Z0-9./]+", OnigRegexp::MULTILINE | OnigRegexp::IGNORECASE).casefold?
@@ -35,13 +53,13 @@ assert("OnigRegexp#casefold?") do
   assert_true OnigRegexp.new("(https?://[^/]+)[-a-zA-Z0-9./]+", true).casefold?
 end
 
-assert("OnigRegexp#match") do
+assert("OnigRegexp#match", '15.2.15.7.7') do
   reg = OnigRegexp.new("(https?://[^/]+)[-a-zA-Z0-9./]+")
   assert_false reg.match("http://masamitsu-murase.12345/hoge.html").nil?
   assert_nil reg.match("http:///masamitsu-murase.12345/hoge.html")
 end
 
-assert("OnigRegexp#source") do
+assert("OnigRegexp#source", '15.2.15.7.8') do
   str = "(https?://[^/]+)[-a-zA-Z0-9./]+"
   reg = OnigRegexp.new(str)
 
@@ -92,7 +110,7 @@ assert('OnigMatchData.new') do
   assert_raise(NoMethodError) { OnigMatchData.new('aaa', 'i') }
 end
 
-assert('OnigMatchData#[]') do
+assert('OnigMatchData#[]', '15.2.16.3.1') do
   m = onig_match_data_example
   assert_equal 'aaabb', m[0]
   assert_equal 'aaab', m[1]
@@ -107,61 +125,61 @@ assert('OnigMatchData#[]') do
   assert_equal 'ab', m[1]
 end
 
-assert('OnigMatchData#begin') do
+assert('OnigMatchData#begin', '15.2.16.3.2') do
   m = onig_match_data_example
   assert_equal 1, m.begin(0)
   assert_equal 1, m.begin(1)
   assert_raise(IndexError) { m.begin 3 }
 end
 
-assert('OnigMatchData#captures') do
+assert('OnigMatchData#captures', '15.2.16.3.3') do
   m = onig_match_data_example
   assert_equal ['aaab', 'b'], m.captures
 end
 
-assert('OnigMatchData#end') do
+assert('OnigMatchData#end', '15.2.16.3.4') do
   m = onig_match_data_example
   assert_equal 6, m.end(0)
   assert_equal 5, m.end(1)
   assert_raise(IndexError) { m.end 3 }
 end
 
-assert('OnigMatchData#initialize_copy') do
+assert('OnigMatchData#initialize_copy', '15.2.16.3.5') do
   m = onig_match_data_example
   c = m.dup
   assert_equal m.to_a, c.to_a
 end
 
-assert('OnigMatchData#length') do
+assert('OnigMatchData#length', '15.2.16.3.6') do
   assert_equal 3, onig_match_data_example.length
 end
 
-assert('OnigMatchData#offset') do
+assert('OnigMatchData#offset', '15.2.16.3.7') do
   assert_equal [1, 6], onig_match_data_example.offset(0)
   assert_equal [1, 5], onig_match_data_example.offset(1)
 end
 
-assert('OnigMatchData#post_match') do
+assert('OnigMatchData#post_match', '15.2.16.3.8') do
   assert_equal '-', onig_match_data_example.post_match
 end
 
-assert('OnigMatchData#pre_match') do
+assert('OnigMatchData#pre_match', '15.2.16.3.9') do
   assert_equal '+', onig_match_data_example.pre_match
 end
 
-assert('OnigMatchData#size') do
+assert('OnigMatchData#size', '15.2.16.3.10') do
   assert_equal 3, onig_match_data_example.length
 end
 
-assert('OnigMatchData#string') do
+assert('OnigMatchData#string', '15.2.16.3.11') do
   assert_equal '+aaabb-', onig_match_data_example.string
 end
 
-assert('OnigMatchData#to_a') do
+assert('OnigMatchData#to_a', '15.2.16.3.12') do
   assert_equal ['aaabb', 'aaab', 'b'], onig_match_data_example.to_a
 end
 
-assert('OnigMatchData#to_s') do
+assert('OnigMatchData#to_s', '15.2.16.3.13') do
   assert_equal 'aaabb', onig_match_data_example.to_s
 end
 
@@ -304,9 +322,3 @@ assert('OnigRegexp not default') do
 end
 
 Regexp = prev_regexp
-
-assert('OnigRegexp.escape') do
-  escaping_chars = "\n\t\r\f #$()*+-.?[\\]^{|}"
-  assert_equal '\n\t\r\f\\ \#\$\(\)\*\+\-\.\?\[\\\\\]\^\{\|\}', OnigRegexp.escape(escaping_chars)
-  assert_equal 'cute\nmruby\tcute', OnigRegexp.escape("cute\nmruby\tcute")
-end
