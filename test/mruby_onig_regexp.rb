@@ -70,6 +70,10 @@ assert("OnigRegexp#source", '15.2.15.7.8') do
   reg.source == str
 end
 
+assert('OnigRegexp#options') do
+  assert_equal OnigRegexp::MULTILINE, OnigRegexp.new(".*", OnigRegexp::MULTILINE).options
+end
+
 # Extended patterns.
 assert("OnigRegexp#match (no flags)") do
   [

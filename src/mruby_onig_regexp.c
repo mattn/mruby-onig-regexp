@@ -188,6 +188,13 @@ onig_regexp_casefold_p(mrb_state *mrb, mrb_value self) {
 }
 
 static mrb_value
+onig_regexp_options(mrb_state *mrb, mrb_value self) {
+  OnigRegex reg;
+  Data_Get_Struct(mrb, self, &mrb_onig_regexp_type, reg);
+  return mrb_fixnum_value(onig_get_options(reg));
+}
+
+static mrb_value
 onig_regexp_version(mrb_state* mrb, mrb_value self) {
   (void)self;
   return mrb_str_new_cstr(mrb, onig_version());
@@ -733,6 +740,8 @@ mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
   mrb_define_method(mrb, clazz, "==", onig_regexp_equal, ARGS_REQ(1));
   mrb_define_method(mrb, clazz, "match", onig_regexp_match, ARGS_REQ(1) | ARGS_OPT(1));
   mrb_define_method(mrb, clazz, "casefold?", onig_regexp_casefold_p, ARGS_NONE());
+
+  mrb_define_method(mrb, clazz, "options", onig_regexp_options, MRB_ARGS_NONE());
 
   mrb_define_module_function(mrb, clazz, "escape", onig_regexp_escape, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, clazz, "quote", onig_regexp_escape, MRB_ARGS_REQ(1));
