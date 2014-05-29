@@ -11,6 +11,12 @@
 #include <mruby/variable.h>
 #include "oniguruma.h"
 
+#ifdef MRUBY_VERSION
+#define mrb_args_int mrb_int
+#else
+#define mrb_args_int int
+#endif
+
 static void
 onig_regexp_free(mrb_state *mrb, void *p) {
   onig_free((OnigRegex) p);
@@ -662,7 +668,7 @@ onig_regexp_set_set_global_variables(mrb_state* mrb, mrb_value self) {
 // ISO 15.2.15.6.2
 static mrb_value
 onig_regexp_escape(mrb_state* mrb, mrb_value self) {
-  char const* str_begin; int str_len;
+  char* str_begin; mrb_args_int str_len;
   mrb_get_args(mrb, "s", &str_begin, &str_len);
 
   mrb_value const ret = mrb_str_new(mrb, NULL, 0);
