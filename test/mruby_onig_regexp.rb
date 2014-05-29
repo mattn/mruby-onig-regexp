@@ -21,6 +21,10 @@ assert('OnigRegexp.last_match', '15.2.15.6.3') do
   assert_equal 'ginka', OnigRegexp.last_match[0]
 end
 
+assert('OnigRegexp.quote', '15.2.15.6.4') do
+  assert_equal '\n', OnigRegexp.quote("\n")
+end
+
 # Instance method
 assert('OnigRegexp#initialize', '15.2.15.7.1') do
   OnigRegexp.new(".*") and OnigRegexp.new(".*", OnigRegexp::MULTILINE)

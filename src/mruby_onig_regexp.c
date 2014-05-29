@@ -735,6 +735,7 @@ mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
   mrb_define_method(mrb, clazz, "casefold?", onig_regexp_casefold_p, ARGS_NONE());
 
   mrb_define_module_function(mrb, clazz, "escape", onig_regexp_escape, MRB_ARGS_REQ(1));
+  mrb_define_module_function(mrb, clazz, "quote", onig_regexp_escape, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, clazz, "version", onig_regexp_version, MRB_ARGS_NONE());
   mrb_define_module_function(mrb, clazz, "set_global_variables?", onig_regexp_does_set_global_variables, MRB_ARGS_NONE());
   mrb_define_module_function(mrb, clazz, "set_global_variables=", onig_regexp_set_set_global_variables, MRB_ARGS_REQ(1));
