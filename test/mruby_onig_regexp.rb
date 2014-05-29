@@ -30,6 +30,13 @@ assert('OnigRegexp#initialize', '15.2.15.7.1') do
   OnigRegexp.new(".*") and OnigRegexp.new(".*", OnigRegexp::MULTILINE)
 end
 
+assert('OnigRegexp#initialize_copy', '15.2.15.7.2') do
+  r1 = OnigRegexp.new(".*")
+  r2 = r1.dup
+  assert_equal r1, r2
+  assert_equal 'kawa', r2.match('kawa')[0]
+end
+
 assert("OnigRegexp#==", '15.2.15.7.3') do
   reg1 = reg2 = OnigRegexp.new("(https?://[^/]+)[-a-zA-Z0-9./]+")
   reg3 = OnigRegexp.new("(https?://[^/]+)[-a-zA-Z0-9./]+")

@@ -15,6 +15,11 @@ class OnigRegexp
     @last_match
   end
 
+  # ISO 15.2.15.7.2
+  def initialize_copy(other)
+    initialize(other.source, other.options)
+  end
+
   # ISO 15.2.15.7.4
   def ===(str)
     not self.match(str).nil?
