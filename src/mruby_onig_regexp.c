@@ -515,11 +515,11 @@ string_scan(mrb_state* mrb, mrb_value self) {
       if(m->num_regs == 1) {
         mrb_yield(mrb, blk, mrb_str_substr(mrb, self, m->beg[0], m->end[0] - m->beg[0]));
       } else {
-        mrb_value argv[m->num_regs - 1];
+        mrb_value argv = mrb_ary_new_capa(mrb, m->num_regs - 1);
         for(i = 1; i < m->num_regs; ++i) {
-          argv[i - 1] = mrb_str_substr(mrb, self, m->beg[i], m->end[i] - m->beg[i]);
+          mrb_ary_push(mrb, argv, mrb_str_substr(mrb, self, m->beg[i], m->end[i] - m->beg[i]));
         }
-        mrb_yield_argv(mrb, blk, m->num_regs - 1, argv);
+        mrb_yield(mrb, blk, argv);
       }
     }
 
