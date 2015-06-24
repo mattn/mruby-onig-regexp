@@ -736,10 +736,10 @@ mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
   mrb_define_const(mrb, clazz, "EXTENDED", mrb_fixnum_value(ONIG_OPTION_EXTEND));
   mrb_define_const(mrb, clazz, "MULTILINE", mrb_fixnum_value(ONIG_OPTION_MULTILINE));
 
-  mrb_define_method(mrb, clazz, "initialize", onig_regexp_initialize, ARGS_REQ(1) | ARGS_OPT(2));
-  mrb_define_method(mrb, clazz, "==", onig_regexp_equal, ARGS_REQ(1));
-  mrb_define_method(mrb, clazz, "match", onig_regexp_match, ARGS_REQ(1) | ARGS_OPT(1));
-  mrb_define_method(mrb, clazz, "casefold?", onig_regexp_casefold_p, ARGS_NONE());
+  mrb_define_method(mrb, clazz, "initialize", onig_regexp_initialize, MRB_ARGS_REQ(1) | MRB_ARGS_OPT(2));
+  mrb_define_method(mrb, clazz, "==", onig_regexp_equal, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, clazz, "match", onig_regexp_match, MRB_ARGS_REQ(1) | MRB_ARGS_OPT(1));
+  mrb_define_method(mrb, clazz, "casefold?", onig_regexp_casefold_p, MRB_ARGS_NONE());
 
   mrb_define_method(mrb, clazz, "options", onig_regexp_options, MRB_ARGS_NONE());
 
