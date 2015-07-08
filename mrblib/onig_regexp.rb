@@ -50,6 +50,63 @@ class String
     alias_method "string_#{v}".to_sym, v
     alias_method v, "onig_regexp_#{v}".to_sym
   end
+
+  alias_method :old_slice, :slice
+  alias_method :old_square_brancket, :[]
+
+  def [](*args)
+    return old_square_brancket(*args) unless args[0].class == Regexp
+
+    if args.size == 2
+      match = args[0].match(self)
+      if match
+        if args[1] == 0
+          str = match[0]
+        else
+          str = match.captures[args[1] - 1]
+        end
+        return str
+      end
+    end
+
+    match_data = args[0].match(self)
+    if match_data
+      result = match_data.to_s
+      return result
+    end
+  end
+
+  alias_method :slice, :[]
+
+  def slice!(*args)
+    if args.size < 2
+      result = slice(*args)
+      nth = args[0]
+
+      if nth.class == Regexp
+        lm = Regexp.last_match
+        self[nth] = '' if result
+        Regexp.last_match = lm
+      else
+        self[nth] = '' if result
+      end
+    else
+      result = slice(*args)
+
+      nth = args[0]
+      len = args[1]
+
+      if nth.class == Regexp
+        lm = Regexp.last_match
+        self[nth, len] = '' if result
+        Regexp.last_match = lm
+      else
+        self[nth, len] = '' if result && nth != self.size
+      end
+    end
+
+    result
+  end
 end
 
 Regexp = OnigRegexp unless Object.const_defined?(:Regexp)
