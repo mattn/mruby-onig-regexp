@@ -216,9 +216,7 @@ match_data_actual_index(mrb_state* mrb, mrb_value self, mrb_value idx_value) {
   } else if(mrb_string_p(idx_value)) {
     name = mrb_string_value_ptr(mrb, idx_value);
     name_end = name + strlen(name);
-  } else {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid MatchData index type: %S", idx_value);
-  }
+  } else { mrb_assert(FALSE); }
   mrb_assert(name && name_end);
 
   mrb_value const regexp = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "regexp"));
@@ -237,9 +235,24 @@ match_data_actual_index(mrb_state* mrb, mrb_value self, mrb_value idx_value) {
 // ISO 15.2.16.3.1
 static mrb_value
 match_data_index(mrb_state* mrb, mrb_value self) {
-  mrb_value idx_value;
-  mrb_get_args(mrb, "o", &idx_value);
-  return mrb_ary_entry(match_data_to_a(mrb, self), match_data_actual_index(mrb, self, idx_value));
+  mrb_value src;
+  mrb_int argc; mrb_value *argv;
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+
+  src = match_data_to_a(mrb, self);
+
+  if (argc == 1) {
+    switch (mrb_type(argv[0])) {
+    case MRB_TT_FIXNUM:
+    case MRB_TT_SYMBOL:
+    case MRB_TT_STRING:
+      return mrb_ary_entry(src, match_data_actual_index(mrb, self, argv[0]));
+    default: break;
+    }
+  }
+
+  return mrb_funcall_argv(mrb, src, mrb_intern_lit(mrb, "[]"), argc, argv);
 }
 
 #define match_data_check_index(idx) \
