@@ -27,3 +27,11 @@ matchstr("abcdef") # => match
 matchstr("ghijkl") # => not match
 matchstr("xyzabc") # => match
 ```
+
+## License
+
+MIT
+
+## Author
+
+Yasuhiro Matsumoto (a.k.a mattn)
