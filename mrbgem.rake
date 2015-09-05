@@ -12,8 +12,8 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
   require 'open3'
   require 'open-uri'
 
-  version = '5.9.5'
-  oniguruma_dir = "#{build_dir}/onig-#{version}"
+  version = '5.15.0'
+  oniguruma_dir = "#{build_dir}/Onigmo-Onigmo-#{version}"
   oniguruma_lib = libfile "#{oniguruma_dir}/.libs/libonig"
   header = "#{oniguruma_dir}/oniguruma.h"
 
@@ -29,7 +29,7 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
       FileUtils.mkdir_p build_dir
       Dir.chdir(build_dir) do
         File.open("onig-#{version}.tar.gz", 'wb') do |f|
-          open("http://www.geocities.jp/kosako3/oniguruma/archive/onig-#{version}.tar.gz", "accept-encoding" => "none") do |io|
+          open("https://github.com/k-takata/Onigmo/archive/Onigmo-#{version}.tar.gz", "accept-encoding" => "none") do |io|
             f.write io.read
           end
         end
