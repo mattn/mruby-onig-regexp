@@ -4,7 +4,7 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
 
   spec.linker.libraries << 'onig'
 
-  next if build.kind_of? MRuby::CrossBuild or ENV['OS'] == 'Windows_NT'
+  next if build.kind_of? MRuby::CrossBuild
   if build.cc.respond_to? :search_header_path
     next if build.cc.search_header_path 'oniguruma.h'
   end
@@ -59,10 +59,15 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
         'CXX' => "#{spec.build.cxx.command} #{spec.build.cxx.flags.join(' ')}",
         'LD' => "#{spec.build.linker.command} #{spec.build.linker.flags.join(' ')}",
         'AR' => spec.build.archiver.command }
-      _pp 'autotools', oniguruma_dir
-      run_command e, './autogen.sh' if File.exists? 'autogen.sh'
-      run_command e, './configure --disable-shared --enable-static'
-      run_command e, 'make'
+      unless ENV['OS'] == 'Windows_NT'
+        _pp 'autotools', oniguruma_dir
+        run_command e, './autogen.sh' if File.exists? 'autogen.sh'
+        run_command e, './configure --disable-shared --enable-static'
+        run_command e, 'make'
+      else
+        run_command e, 'cmd /c "copy /Y win32'
+        run_command e, 'make -f Makefile.mingw'
+	  end
     end
   end
 
