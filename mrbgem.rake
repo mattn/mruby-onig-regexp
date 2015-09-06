@@ -65,7 +65,7 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
         run_command e, './configure --disable-shared --enable-static'
         run_command e, 'make'
       else
-        run_command e, 'cmd /c "copy /Y win32'
+        run_command e, 'cmd /c "copy /Y win32 > NUL"'
         run_command e, 'make -f Makefile.mingw'
 	  end
     end
