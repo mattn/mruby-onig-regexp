@@ -4,7 +4,7 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
 
   spec.linker.libraries << 'onig'
 
-  next if build.kind_of? MRuby::CrossBuild or ENV['OS'] == 'Windows_NT'
+  next if build.kind_of? MRuby::CrossBuild
   if build.cc.respond_to? :search_header_path
     next if build.cc.search_header_path 'oniguruma.h'
   end
@@ -12,8 +12,8 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
   require 'open3'
   require 'open-uri'
 
-  version = '5.9.5'
-  oniguruma_dir = "#{build_dir}/onig-#{version}"
+  version = '5.15.0'
+  oniguruma_dir = "#{build_dir}/Onigmo-Onigmo-#{version}"
   oniguruma_lib = libfile "#{oniguruma_dir}/.libs/libonig"
   header = "#{oniguruma_dir}/oniguruma.h"
 
@@ -29,7 +29,7 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
       FileUtils.mkdir_p build_dir
       Dir.chdir(build_dir) do
         File.open("onig-#{version}.tar.gz", 'wb') do |f|
-          open("http://www.geocities.jp/kosako3/oniguruma/archive/onig-#{version}.tar.gz", "accept-encoding" => "none") do |io|
+          open("https://github.com/k-takata/Onigmo/archive/Onigmo-#{version}.tar.gz", "accept-encoding" => "none") do |io|
             f.write io.read
           end
         end
@@ -59,10 +59,15 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
         'CXX' => "#{spec.build.cxx.command} #{spec.build.cxx.flags.join(' ')}",
         'LD' => "#{spec.build.linker.command} #{spec.build.linker.flags.join(' ')}",
         'AR' => spec.build.archiver.command }
-      _pp 'autotools', oniguruma_dir
-      run_command e, './autogen.sh' if File.exists? 'autogen.sh'
-      run_command e, './configure --disable-shared --enable-static'
-      run_command e, 'make'
+      unless ENV['OS'] == 'Windows_NT'
+        _pp 'autotools', oniguruma_dir
+        run_command e, './autogen.sh' if File.exists? 'autogen.sh'
+        run_command e, './configure --disable-shared --enable-static'
+        run_command e, 'make'
+      else
+        run_command e, 'cmd /c "copy /Y win32'
+        run_command e, 'make -f Makefile.mingw'
+	  end
     end
   end
 
