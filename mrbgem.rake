@@ -35,7 +35,7 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
         end
 
         _pp 'extracting', "onig-#{version}"
-        `gzip -dc onig-#{version}.tar.gz | tar x`
+        `gzip -dc onig-#{version}.tar.gz | tar xf -`
         raise IOError unless $?.exitstatus
       end
     rescue IOError
