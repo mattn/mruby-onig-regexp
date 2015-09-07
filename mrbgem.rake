@@ -2,11 +2,10 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
   spec.license = 'MIT'
   spec.authors = 'mattn'
 
-  spec.linker.libraries << 'onig'
-
-  next if build.kind_of? MRuby::CrossBuild
-  if build.cc.respond_to? :search_header_path
-    next if build.cc.search_header_path 'oniguruma.h'
+  if build.kind_of? MRuby::CrossBuild or
+      (build.cc.respond_to? :search_header_path and build.cc.search_header_path 'oniguruma.h')
+    spec.linker.libraries << 'onig'
+    next
   end
 
   require 'open3'
@@ -52,6 +51,9 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
     end
   end
 
+  libonig_objs_dir = "#{oniguruma_dir}/libonig_objs"
+  libmruby_a = libfile("#{build.build_dir}/lib/libmruby")
+
   file oniguruma_lib => header do |t|
     Dir.chdir(oniguruma_dir) do
       e = {
@@ -67,11 +69,16 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
       else
         run_command e, 'cmd /c "copy /Y win32 > NUL"'
         run_command e, 'make -f Makefile.mingw'
-	  end
+      end
     end
+
+    FileUtils.mkdir_p libonig_objs_dir
+    Dir.chdir(libonig_objs_dir) { `ar x #{oniguruma_lib}` }
+    file libmruby_a => Dir.glob("#{libonig_objs_dir}/*.o")
   end
+
+  file libmruby_a => Dir.glob("#{libonig_objs_dir}/*.o") if File.exists? oniguruma_lib
 
   file "#{dir}/src/mruby_onig_regexp.c" => oniguruma_lib
   spec.cc.include_paths << oniguruma_dir
-  spec.linker.library_paths << File.dirname(oniguruma_lib)
 end
