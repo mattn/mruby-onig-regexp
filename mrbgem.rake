@@ -14,6 +14,11 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
     version = '5.15.0'
     oniguruma_dir = "#{build_dir}/Onigmo-Onigmo-#{version}"
     oniguruma_lib = libfile "#{oniguruma_dir}/.libs/libonig"
+    unless ENV['OS'] == 'Windows_NT'
+      oniguruma_lib = libfile "#{oniguruma_dir}/.libs/libonig"
+    else
+      oniguruma_lib = libfile "#{oniguruma_dir}/onig"
+    end
     header = "#{oniguruma_dir}/oniguruma.h"
 
     task :clean do
