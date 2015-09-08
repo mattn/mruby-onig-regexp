@@ -17,7 +17,7 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
     unless ENV['OS'] == 'Windows_NT'
       oniguruma_lib = libfile "#{oniguruma_dir}/.libs/libonig"
     else
-      oniguruma_lib = libfile "#{oniguruma_dir}/onig"
+      oniguruma_lib = libfile "#{oniguruma_dir}/onig_s"
     end
     header = "#{oniguruma_dir}/oniguruma.h"
 
