@@ -275,6 +275,19 @@ assert('String#onig_regexp_split') do
   assert_equal [], ''.onig_regexp_split(OnigRegexp.new(','), -1)
 end
 
+assert('String#index') do
+  assert_equal 0, 'abc'.index('a')
+  assert_nil 'abc'.index('d')
+  assert_equal 3, 'abcabc'.index('a', 1)
+  assert_equal 1, "hello".index(?e)
+
+  assert_equal 0, 'abcabc'.index(/a/)
+  assert_nil 'abc'.index(/d/)
+  assert_equal 3, 'abcabc'.index(/a/, 1)
+  assert_equal 4, "hello".index(/[aeiou]/, -3)
+  assert_equal 3, "regexpindex".index(/e.*x/, 2)
+end
+
 prev_regexp = Regexp
 
 Regexp = OnigRegexp
