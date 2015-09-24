@@ -87,6 +87,13 @@ if OnigRegexp.const_defined? :ASCII_RANGE
   end
 end
 
+assert("OnigRegexp#inspect") do
+  reg = OnigRegexp.new("(https?://[^/]+)[-a-zA-Z0-9./]+")
+
+  assert_equal '/(https?:\/\/[^\/]+)[-a-zA-Z0-9.\/]+/', reg.inspect
+  assert_equal '/abc\nd\te/mi', OnigRegexp.new("abc\nd\te", OnigRegexp::MULTILINE | OnigRegexp::IGNORECASE).inspect
+end
+
 # Extended patterns.
 assert("OnigRegexp#match (no flags)") do
   [
