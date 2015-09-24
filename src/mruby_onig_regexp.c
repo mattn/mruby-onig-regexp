@@ -217,6 +217,74 @@ onig_regexp_options(mrb_state *mrb, mrb_value self) {
   return mrb_fixnum_value(onig_get_options(reg));
 }
 
+static char *
+option_to_str(char str[4], int options) {
+  char *p = str;
+  if (options & ONIG_OPTION_MULTILINE) *p++ = 'm';
+  if (options & ONIG_OPTION_IGNORECASE) *p++ = 'i';
+  if (options & ONIG_OPTION_EXTEND) *p++ = 'x';
+  *p = 0;
+  return str;
+}
+
+static mrb_value
+regexp_expr_str(mrb_state *mrb, mrb_value str, mrb_value src) {
+  const char *p, *pend;
+  char buf[5];
+
+  p = RSTRING_PTR(src); pend = RSTRING_END(src);
+  for (;p < pend; p++) {
+    unsigned char c, cc;
+
+    c = *p;
+    if (c == '/'|| c == '\\') {
+      buf[0] = '\\'; buf[1] = c;
+      mrb_str_cat(mrb, str, buf, 2);
+      continue;
+    }
+    if (ISPRINT(c)) {
+      buf[0] = c;
+      mrb_str_cat(mrb, str, buf, 1);
+      continue;
+    }
+    switch (c) {
+      case '\n': cc = 'n'; break;
+      case '\r': cc = 'r'; break;
+      case '\t': cc = 't'; break;
+      default: cc = 0; break;
+    }
+    if (cc) {
+      buf[0] = '\\';
+      buf[1] = (char)cc;
+      mrb_str_cat(mrb, str, buf, 2);
+      continue;
+    }
+    else {
+      buf[0] = '\\';
+      buf[3] = '0' + c % 8; c /= 8;
+      buf[2] = '0' + c % 8; c /= 8;
+      buf[1] = '0' + c % 8;
+      mrb_str_cat(mrb, str, buf, 4);
+      continue;
+    }
+  }
+  return str;
+}
+
+static mrb_value
+onig_regexp_inspect(mrb_state *mrb, mrb_value self) {
+  OnigRegex reg;
+  Data_Get_Struct(mrb, self, &mrb_onig_regexp_type, reg);
+  mrb_value str = mrb_str_new_lit(mrb, "/");
+  regexp_expr_str(mrb, str, mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@source")));
+  mrb_str_cat_lit(mrb, str, "/");
+  char opts[4];
+  if (*option_to_str(opts, onig_get_options(reg))) {
+    mrb_str_cat_cstr(mrb, str, opts);
+  }
+  return str;
+}
+
 static mrb_value
 onig_regexp_version(mrb_state* mrb, mrb_value self) {
   (void)self;
@@ -805,6 +873,7 @@ mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
   mrb_define_method(mrb, clazz, "casefold?", onig_regexp_casefold_p, MRB_ARGS_NONE());
 
   mrb_define_method(mrb, clazz, "options", onig_regexp_options, MRB_ARGS_NONE());
+  mrb_define_method(mrb, clazz, "inspect", onig_regexp_inspect, MRB_ARGS_NONE());
 
   mrb_define_module_function(mrb, clazz, "escape", onig_regexp_escape, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, clazz, "quote", onig_regexp_escape, MRB_ARGS_REQ(1));
