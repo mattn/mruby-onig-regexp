@@ -94,6 +94,23 @@ assert("OnigRegexp#inspect") do
   assert_equal '/abc\nd\te/mi', OnigRegexp.new("abc\nd\te", OnigRegexp::MULTILINE | OnigRegexp::IGNORECASE).inspect
 end
 
+assert("OnigRegexp#to_s") do
+  assert_equal '(?-mix:ab+c)', OnigRegexp.new("ab+c").to_s
+  assert_equal '(?-mix:ab+c)', /ab+c/.to_s
+  assert_equal '(?mx-i:ab+c)', OnigRegexp.new("ab+c", OnigRegexp::MULTILINE | OnigRegexp::EXTENDED).to_s
+  assert_equal '(?mi-x:ab+c)', /ab+c/im.to_s
+end
+
+assert("OnigRegexp#to_s (composition)") do
+  re1 = OnigRegexp.new("ab+c")
+  re2 = OnigRegexp.new("xy#{re1}z")
+  assert_equal '(?-mix:xy(?-mix:ab+c)z)', re2.to_s
+
+  re3 = OnigRegexp.new("ab.+c", OnigRegexp::MULTILINE)
+  re4 = OnigRegexp.new("xy#{re3}z", OnigRegexp::IGNORECASE)
+  assert_equal '(?i-mx:xy(?m-ix:ab.+c)z)', re4.to_s
+end
+
 # Extended patterns.
 assert("OnigRegexp#match (no flags)") do
   [

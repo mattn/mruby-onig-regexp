@@ -228,11 +228,11 @@ option_to_str(char str[4], int options) {
 }
 
 static mrb_value
-regexp_expr_str(mrb_state *mrb, mrb_value str, mrb_value src) {
-  const char *p, *pend;
+regexp_expr_str(mrb_state *mrb, mrb_value str, const char *p, int len) {
+  const char *pend;
   char buf[5];
 
-  p = RSTRING_PTR(src); pend = RSTRING_END(src);
+  pend = (const char *) p + len;
   for (;p < pend; p++) {
     unsigned char c, cc;
 
@@ -276,7 +276,8 @@ onig_regexp_inspect(mrb_state *mrb, mrb_value self) {
   OnigRegex reg;
   Data_Get_Struct(mrb, self, &mrb_onig_regexp_type, reg);
   mrb_value str = mrb_str_new_lit(mrb, "/");
-  regexp_expr_str(mrb, str, mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@source")));
+  mrb_value src = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@source"));
+  regexp_expr_str(mrb, str, (const char *)RSTRING_PTR(src), RSTRING_LEN(src));
   mrb_str_cat_lit(mrb, str, "/");
   char opts[4];
   if (*option_to_str(opts, onig_get_options(reg))) {
@@ -284,6 +285,80 @@ onig_regexp_inspect(mrb_state *mrb, mrb_value self) {
   }
   return str;
 }
+
+static mrb_value
+onig_regexp_to_s(mrb_state *mrb, mrb_value self) {
+  mrb_value re;
+  int options, opt;
+  const int embeddable = ONIG_OPTION_MULTILINE|ONIG_OPTION_IGNORECASE|ONIG_OPTION_EXTEND;
+  long len;
+  const char* ptr;
+  mrb_value str = mrb_str_new_lit(mrb, "(?");
+  char optbuf[5];
+
+  OnigRegex reg;
+  Data_Get_Struct(mrb, self, &mrb_onig_regexp_type, reg);
+  options = onig_get_options(reg);
+  mrb_value src = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@source"));
+  ptr = RSTRING_PTR(src);
+  len = RSTRING_LEN(src);
+
+ again:
+  if (len >= 4 && ptr[0] == '(' && ptr[1] == '?') {
+	int err = 1;
+	ptr += 2;
+	if ((len -= 2) > 0) {
+      do {
+        if(strchr(ptr, 'i')) { options |= ONIG_OPTION_IGNORECASE; }
+        if(strchr(ptr, 'x')) { options |= ONIG_OPTION_EXTEND; }
+        if(strchr(ptr, 'm')) { options |= ONIG_OPTION_MULTILINE; }
+		++ptr;
+      } while (--len > 0);
+	}
+	if (len > 1 && *ptr == '-') {
+      ++ptr;
+      --len;
+      do {
+        if(strchr(ptr, 'i')) { options &= ~ONIG_OPTION_IGNORECASE; }
+        if(strchr(ptr, 'x')) { options &= ~ONIG_OPTION_EXTEND; }
+        if(strchr(ptr, 'm')) { options &= ~ONIG_OPTION_MULTILINE; }
+		++ptr;
+      } while (--len > 0);
+	}
+	if (*ptr == ')') {
+      --len;
+      ++ptr;
+      goto again;
+	}
+	if (*ptr == ':' && ptr[len-1] == ')') {
+      OnigRegex rp;
+      ++ptr;
+      len -= 2;
+      err = onig_new(&rp, (OnigUChar*)ptr, (OnigUChar*)ptr + len, ONIG_OPTION_DEFAULT,
+                     ONIG_ENCODING_UTF8, OnigDefaultSyntax, NULL);
+      onig_free(rp);
+	}
+	if (err) {
+      options = onig_get_options(reg);
+      ptr = RSTRING_PTR(src);
+      len = RSTRING_LEN(src);
+	}
+  }
+
+  if (*option_to_str(optbuf, options)) mrb_str_cat_cstr(mrb, str, optbuf);
+
+  if ((options & embeddable) != embeddable) {
+	optbuf[0] = '-';
+	option_to_str(optbuf + 1, ~options);
+	mrb_str_cat_cstr(mrb, str, optbuf);
+  }
+
+  mrb_str_cat_cstr(mrb, str, ":");
+  regexp_expr_str(mrb, str, ptr, len);
+  mrb_str_cat_cstr(mrb, str, ")");
+  return str;
+}
+
 
 static mrb_value
 onig_regexp_version(mrb_state* mrb, mrb_value self) {
@@ -874,6 +949,7 @@ mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
 
   mrb_define_method(mrb, clazz, "options", onig_regexp_options, MRB_ARGS_NONE());
   mrb_define_method(mrb, clazz, "inspect", onig_regexp_inspect, MRB_ARGS_NONE());
+  mrb_define_method(mrb, clazz, "to_s", onig_regexp_to_s, MRB_ARGS_NONE());
 
   mrb_define_module_function(mrb, clazz, "escape", onig_regexp_escape, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, clazz, "quote", onig_regexp_escape, MRB_ARGS_REQ(1));
