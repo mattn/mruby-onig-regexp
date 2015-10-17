@@ -288,8 +288,7 @@ onig_regexp_inspect(mrb_state *mrb, mrb_value self) {
 
 static mrb_value
 onig_regexp_to_s(mrb_state *mrb, mrb_value self) {
-  mrb_value re;
-  int options, opt;
+  int options;
   const int embeddable = ONIG_OPTION_MULTILINE|ONIG_OPTION_IGNORECASE|ONIG_OPTION_EXTEND;
   long len;
   const char* ptr;
