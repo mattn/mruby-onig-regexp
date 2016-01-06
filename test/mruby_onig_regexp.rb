@@ -42,7 +42,9 @@ assert("OnigRegexp#==", '15.2.15.7.3') do
   reg3 = OnigRegexp.new("(https?://[^/]+)[-a-zA-Z0-9./]+")
   reg4 = OnigRegexp.new("(https://[^/]+)[-a-zA-Z0-9./]+")
 
-  reg1 == reg2 and reg1 == reg3 and !(reg1 == reg4)
+  assert_true(reg1 == reg2 && reg1 == reg3 && !(reg1 == reg4))
+
+  assert_false(OnigRegexp.new("a") == "a")
 end
 
 assert("OnigRegexp#===", '15.2.15.7.4') do

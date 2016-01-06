@@ -189,6 +189,9 @@ onig_regexp_equal(mrb_state *mrb, mrb_value self) {
   if (mrb_nil_p(other)) {
     return mrb_false_value();
   }
+  if (!mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "OnigRegexp"))) {
+    return mrb_false_value();
+  }
   Data_Get_Struct(mrb, self, &mrb_onig_regexp_type, self_reg);
   Data_Get_Struct(mrb, other, &mrb_onig_regexp_type, other_reg);
 
