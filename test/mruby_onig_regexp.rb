@@ -185,6 +185,9 @@ end
 assert('OnigMatchData#captures', '15.2.16.3.3') do
   m = onig_match_data_example
   assert_equal ['aaab', 'b'], m.captures
+
+  m = OnigRegexp.new('(\w+)(\d)?').match('+aaabb-')
+  assert_equal ['aaabb', nil], m.captures
 end
 
 assert('OnigMatchData#end', '15.2.16.3.4') do

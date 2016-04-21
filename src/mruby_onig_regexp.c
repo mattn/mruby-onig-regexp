@@ -545,7 +545,11 @@ match_data_to_a(mrb_state* mrb, mrb_value self) {
   mrb_value ret = mrb_ary_new_capa(mrb, reg->num_regs);
   int i, ai = mrb_gc_arena_save(mrb);
   for(i = 0; i < reg->num_regs; ++i) {
-    mrb_ary_push(mrb, ret, mrb_str_substr(mrb, str, reg->beg[i], reg->end[i] - reg->beg[i]));
+    if(reg->beg[i] == ONIG_REGION_NOTPOS) {
+      mrb_ary_push(mrb, ret, mrb_nil_value());
+    } else {
+      mrb_ary_push(mrb, ret, mrb_str_substr(mrb, str, reg->beg[i], reg->end[i] - reg->beg[i]));
+    }
     mrb_gc_arena_restore(mrb, ai);
   }
   return ret;
