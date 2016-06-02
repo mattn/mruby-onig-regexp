@@ -8,8 +8,8 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
 
     require 'open3'
 
-    # remove libonig
-    linker.libraries = []
+    # remove libonig, instead link directly against pthread
+    linker.libraries = ['pthread']
 
     version = '5.15.0'
     oniguruma_dir = "#{build_dir}/Onigmo-Onigmo-#{version}"
