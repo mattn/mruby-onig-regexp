@@ -83,7 +83,6 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
           winname = oniguruma_lib.gsub(%'/', '\\')
           `lib -nologo -list #{winname}`.each_line do |line|
             line.chomp!
-            _pp 'debug', line
             `lib -nologo -extract:#{line} #{winname}`
           end
         end
