@@ -32,6 +32,9 @@ THE SOFTWARE.
 #include <mruby/string.h>
 #include <mruby/data.h>
 #include <mruby/variable.h>
+#ifdef _MSC_VER
+#define ONIG_EXTERN extern
+#endif
 #include "oniguruma.h"
 
 #ifdef MRUBY_VERSION
