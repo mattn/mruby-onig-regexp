@@ -35,7 +35,13 @@ THE SOFTWARE.
 #ifdef _MSC_VER
 #define ONIG_EXTERN extern
 #endif
+#ifdef HAVE_ONIGMO_H
+#include <onigmo.h>
+#elif defined(HAVE_ONIGURUMA_H)
+#include <oniguruma.h>
+#else
 #include "oniguruma.h"
+#endif
 
 #ifdef MRUBY_VERSION
 #define mrb_args_int mrb_int
@@ -946,7 +952,9 @@ mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
   mrb_define_const(mrb, clazz, "CAPTURE_GROUP", mrb_fixnum_value(ONIG_OPTION_CAPTURE_GROUP));
   mrb_define_const(mrb, clazz, "NOTBOL", mrb_fixnum_value(ONIG_OPTION_NOTBOL));
   mrb_define_const(mrb, clazz, "NOTEOL", mrb_fixnum_value(ONIG_OPTION_NOTEOL));
+#ifdef ONIG_OPTION_POSIX_REGION
   mrb_define_const(mrb, clazz, "POSIX_REGION", mrb_fixnum_value(ONIG_OPTION_POSIX_REGION));
+#endif
 #ifdef ONIG_OPTION_ASCII_RANGE
   mrb_define_const(mrb, clazz, "ASCII_RANGE", mrb_fixnum_value(ONIG_OPTION_ASCII_RANGE));
 #endif
