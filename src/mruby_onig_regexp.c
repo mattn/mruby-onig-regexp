@@ -74,7 +74,6 @@ onig_regexp_initialize(mrb_state *mrb, mrb_value self) {
   mrb_get_args(mrb, "S|oo", &str, &flag, &code);
 
   int cflag = 0;
-  OnigSyntaxType* syntax = ONIG_SYNTAX_RUBY;
   OnigEncoding enc = ONIG_ENCODING_UTF8;
   if(mrb_string_p(code)) {
     char const* str_code = mrb_string_value_ptr(mrb, code);
@@ -102,7 +101,7 @@ onig_regexp_initialize(mrb_state *mrb, mrb_value self) {
   OnigErrorInfo einfo;
   OnigRegex reg;
   int result = onig_new(&reg, (OnigUChar*)RSTRING_PTR(str), (OnigUChar*) RSTRING_PTR(str) + RSTRING_LEN(str),
-                        cflag, enc, syntax, &einfo);
+                        cflag, enc, ONIG_SYNTAX_RUBY, &einfo);
   if (result != ONIG_NORMAL) {
     char err[ONIG_MAX_ERROR_MESSAGE_LEN] = "";
     onig_error_code_to_str((OnigUChar*)err, result);
