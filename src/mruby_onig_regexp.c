@@ -49,6 +49,32 @@ THE SOFTWARE.
 #define mrb_args_int int
 #endif
 
+static const char utf8len_codepage[256] =
+{
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+  3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,1,1,1,1,1,1,1,1,1,1,1,
+};
+
+static mrb_int
+utf8len(const char* p, const char* e)
+{
+  mrb_int len;
+  mrb_int i;
+
+  len = utf8len_codepage[(unsigned char)*p];
+  if (p + len > e) return 1;
+  for (i = 1; i < len; ++i)
+    if ((p[i] & 0xc0) != 0x80)
+      return 1;
+  return len;
+}
+
 static void
 onig_regexp_free(mrb_state *mrb, void *p) {
   onig_free((OnigRegex) p);
@@ -330,52 +356,52 @@ onig_regexp_to_s(mrb_state *mrb, mrb_value self) {
 
  again:
   if (len >= 4 && ptr[0] == '(' && ptr[1] == '?') {
-	int err = 1;
-	ptr += 2;
-	if ((len -= 2) > 0) {
+    int err = 1;
+    ptr += 2;
+    if ((len -= 2) > 0) {
       do {
         if(strchr(ptr, 'i')) { options |= ONIG_OPTION_IGNORECASE; }
         if(strchr(ptr, 'x')) { options |= ONIG_OPTION_EXTEND; }
         if(strchr(ptr, 'm')) { options |= ONIG_OPTION_MULTILINE; }
-		++ptr;
+        ++ptr;
       } while (--len > 0);
-	}
-	if (len > 1 && *ptr == '-') {
+    }
+    if (len > 1 && *ptr == '-') {
       ++ptr;
       --len;
       do {
         if(strchr(ptr, 'i')) { options &= ~ONIG_OPTION_IGNORECASE; }
         if(strchr(ptr, 'x')) { options &= ~ONIG_OPTION_EXTEND; }
         if(strchr(ptr, 'm')) { options &= ~ONIG_OPTION_MULTILINE; }
-		++ptr;
+        ++ptr;
       } while (--len > 0);
-	}
-	if (*ptr == ')') {
+    }
+    if (*ptr == ')') {
       --len;
       ++ptr;
       goto again;
-	}
-	if (*ptr == ':' && ptr[len-1] == ')') {
+    }
+    if (*ptr == ':' && ptr[len-1] == ')') {
       OnigRegex rp;
       ++ptr;
       len -= 2;
       err = onig_new(&rp, (OnigUChar*)ptr, (OnigUChar*)ptr + len, ONIG_OPTION_DEFAULT,
                      ONIG_ENCODING_UTF8, OnigDefaultSyntax, NULL);
       onig_free(rp);
-	}
-	if (err) {
+    }
+    if (err) {
       options = onig_get_options(reg);
       ptr = RSTRING_PTR(src);
       len = RSTRING_LEN(src);
-	}
+    }
   }
 
   if (*option_to_str(optbuf, options)) mrb_str_cat_cstr(mrb, str, optbuf);
 
   if ((options & embeddable) != embeddable) {
-	optbuf[0] = '-';
-	option_to_str(optbuf + 1, ~options);
-	mrb_str_cat_cstr(mrb, str, optbuf);
+    optbuf[0] = '-';
+    option_to_str(optbuf + 1, ~options);
+    mrb_str_cat_cstr(mrb, str, optbuf);
   }
 
   mrb_str_cat_cstr(mrb, str, ":");
@@ -663,6 +689,32 @@ string_gsub(mrb_state* mrb, mrb_value self) {
   mrb_value const match_value = create_onig_region(mrb, self, match_expr);
   OnigRegion* const match = (OnigRegion*)DATA_PTR(match_value);
   int last_end_pos = 0;
+
+  if (match->beg == match->end) {
+    /*
+     * Always consume at least one character of the input string
+     * in order to prevent infinite loops.
+     */
+    char* p = RSTRING_PTR(self);
+    mrb_int len = RSTRING_LEN(self);
+    char* e = p;
+    e += len < 0 ? RSTRING_LEN(self) : len;
+    while (p<e) {
+      int len = utf8len(p, e);
+      mrb_str_cat(mrb, result, p, len);
+      if (p+len == e) break;
+      if(mrb_nil_p(blk)) {
+        append_replace_str(mrb, result, replace_expr, self, reg, match);
+      } else {
+        mrb_value const tmp_str = mrb_str_to_str(mrb, mrb_yield(mrb, blk, mrb_str_substr(
+            mrb, self, match->beg[0], match->end[0] - match->beg[0])));
+        mrb_assert(mrb_string_p(tmp_str));
+        mrb_str_concat(mrb, result, tmp_str);
+      }
+      p += len;
+    }
+    return result;
+  }
 
   while(1) {
     if(onig_match_common(mrb, reg, match_value, self, last_end_pos) == ONIG_MISMATCH) { break; }
