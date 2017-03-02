@@ -256,7 +256,7 @@ assert('String#onig_regexp_gsub') do
   assert_equal 'h<e>ll<o> mr<u>by', test_str.onig_regexp_gsub(OnigRegexp.new('([aeiou])'), '<\1>')
   assert_equal 'h e l l o  m r u b y ', test_str.onig_regexp_gsub(OnigRegexp.new('\w')) { |v| v + ' ' }
   assert_equal 'h{e}ll{o} mr{u}by', test_str.onig_regexp_gsub(OnigRegexp.new('(?<hoge>[aeiou])'), '{\k<hoge>}')
-  assert_equal 'h.e.l.l.o. .m.r.u.b.y', test_str.onig_regexp_gsub(OnigRegexp.new(''), '.')
+  assert_equal '.h.e.l.l.o. .m.r.u.b.y.', test_str.onig_regexp_gsub(OnigRegexp.new(''), '.')
   assert_raise(IndexError) { test_str.onig_regexp_gsub(OnigRegexp.new('(mruby)'), '<\2>') }
 end
 

@@ -683,38 +683,13 @@ string_gsub(mrb_state* mrb, mrb_value self) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "both block and replace expression must not be passed");
   }
 
+  mrb_value str = self;
   OnigRegex reg;
   Data_Get_Struct(mrb, match_expr, &mrb_onig_regexp_type, reg);
   mrb_value const result = mrb_str_new(mrb, NULL, 0);
   mrb_value const match_value = create_onig_region(mrb, self, match_expr);
   OnigRegion* const match = (OnigRegion*)DATA_PTR(match_value);
-  int last_end_pos = 0;
-
-  if (match->beg == match->end) {
-    /*
-     * Always consume at least one character of the input string
-     * in order to prevent infinite loops.
-     */
-    char* p = RSTRING_PTR(self);
-    mrb_int len = RSTRING_LEN(self);
-    char* e = p;
-    e += len < 0 ? RSTRING_LEN(self) : len;
-    while (p<e) {
-      int len = utf8len(p, e);
-      mrb_str_cat(mrb, result, p, len);
-      if (p+len == e) break;
-      if(mrb_nil_p(blk)) {
-        append_replace_str(mrb, result, replace_expr, self, reg, match);
-      } else {
-        mrb_value const tmp_str = mrb_str_to_str(mrb, mrb_yield(mrb, blk, mrb_str_substr(
-            mrb, self, match->beg[0], match->end[0] - match->beg[0])));
-        mrb_assert(mrb_string_p(tmp_str));
-        mrb_str_concat(mrb, result, tmp_str);
-      }
-      p += len;
-    }
-    return result;
-  }
+  int last_end_pos = 0, offset = 0;
 
   while(1) {
     if(onig_match_common(mrb, reg, match_value, self, last_end_pos) == ONIG_MISMATCH) { break; }
@@ -730,7 +705,21 @@ string_gsub(mrb_state* mrb, mrb_value self) {
       mrb_str_concat(mrb, result, tmp_str);
     }
 
-    last_end_pos = match->end[0];
+    if (match->beg[0] == match->end[0]) {
+      /*
+       * Always consume at least one character of the input string
+       * in order to prevent infinite loops.
+       */
+      if (RSTRING_LEN(self) <= match->end[0]) break;
+      char* p = RSTRING_PTR(self) + offset;
+      char* e = p + RSTRING_LEN(self);
+      int len = utf8len(p, e);
+      mrb_str_cat(mrb, result, p, len);
+      offset += len;
+      last_end_pos++;
+    } else {
+      last_end_pos = match->end[0];
+    }
   }
 
   mrb_str_cat(mrb, result, RSTRING_PTR(self) + last_end_pos, RSTRING_LEN(self) - last_end_pos);
