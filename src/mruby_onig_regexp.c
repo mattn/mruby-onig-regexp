@@ -683,7 +683,6 @@ string_gsub(mrb_state* mrb, mrb_value self) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "both block and replace expression must not be passed");
   }
 
-  mrb_value str = self;
   OnigRegex reg;
   Data_Get_Struct(mrb, match_expr, &mrb_onig_regexp_type, reg);
   mrb_value const result = mrb_str_new(mrb, NULL, 0);
