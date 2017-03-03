@@ -688,7 +688,7 @@ string_gsub(mrb_state* mrb, mrb_value self) {
   mrb_value const result = mrb_str_new(mrb, NULL, 0);
   mrb_value const match_value = create_onig_region(mrb, self, match_expr);
   OnigRegion* const match = (OnigRegion*)DATA_PTR(match_value);
-  int last_end_pos = 0, offset = 0;
+  int last_end_pos = 0;
 
   while(1) {
     if(onig_match_common(mrb, reg, match_value, self, last_end_pos) == ONIG_MISMATCH) { break; }
@@ -704,20 +704,18 @@ string_gsub(mrb_state* mrb, mrb_value self) {
       mrb_str_concat(mrb, result, tmp_str);
     }
 
+    last_end_pos = match->end[0];
     if (match->beg[0] == match->end[0]) {
       /*
        * Always consume at least one character of the input string
        * in order to prevent infinite loops.
        */
-      if (RSTRING_LEN(self) <= match->end[0]) break;
-      char* p = RSTRING_PTR(self) + offset;
+      char* p = RSTRING_PTR(self) + last_end_pos;
       char* e = p + RSTRING_LEN(self);
       int len = utf8len(p, e);
+      if (RSTRING_LEN(self) < last_end_pos + len) break;
       mrb_str_cat(mrb, result, p, len);
-      offset += len;
-      last_end_pos++;
-    } else {
-      last_end_pos = match->end[0];
+      last_end_pos += len;
     }
   }
 
