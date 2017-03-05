@@ -649,11 +649,9 @@ append_replace_str(mrb_state* mrb, mrb_value result, mrb_value replace,
       default:
         if (isdigit(*ch)) { // group number 0-9
           int const idx = *ch - '0';
-          if (idx >= match->num_regs) {
-            mrb_raisef(mrb, E_INDEX_ERROR, "undefined group number reference: %S (max: %S)",
-                       mrb_fixnum_value(idx), mrb_fixnum_value(match->num_regs));
+          if (idx < match->num_regs) {
+            mrb_str_cat(mrb, result, RSTRING_PTR(src) + match->beg[idx], match->end[idx] - match->beg[idx]);
           }
-          mrb_str_cat(mrb, result, RSTRING_PTR(src) + match->beg[idx], match->end[idx] - match->beg[idx]);
         } else {
           char const str[] = { '\\', *ch };
           mrb_str_cat(mrb, result, str, 2);
