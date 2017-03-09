@@ -42,10 +42,8 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
     end
 
     def run_command(env, command)
-      STDOUT.sync = true
-      Open3.popen2e(env, command) do |stdin, stdout, thread|
-        print stdout.read
-        fail "#{command} failed" if thread.value != 0
+      unless system(env, command)
+        fail "#{command} failed"
       end
     end
 
