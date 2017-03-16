@@ -275,6 +275,9 @@ assert('String#onig_regexp_scan') do
   result = ''
   assert_equal test_str, test_str.onig_regexp_scan(OnigRegexp.new('(.)(.)')) { |x, y| result += y; result += x }
   assert_equal 'rmbu yowlr', result
+
+  assert_equal [""] * (test_str.length + 1), test_str.onig_regexp_scan(OnigRegexp.new(''))
+  assert_equal [""], "".onig_regexp_scan(OnigRegexp.new(''))
 end
 
 assert('String#onig_regexp_sub') do
