@@ -767,7 +767,21 @@ string_scan(mrb_state* mrb, mrb_value self) {
       }
     }
 
-    last_end_pos = m->end[0];
+    if (m->beg[0] == m->end[0]) {
+      /*
+      * Always consume at least one character of the input string
+      */
+      if (RSTRING_LEN(self) > m->end[0]) {
+        char* p = RSTRING_PTR(self) + last_end_pos;
+        char* e = p + RSTRING_LEN(self);
+        int len = utf8len(p, e);
+        last_end_pos = m->end[0] + len;
+      } else {
+        last_end_pos = m->end[0] + 1;
+      }
+    } else {
+      last_end_pos = m->end[0];
+    }
   }
 
   return result;
