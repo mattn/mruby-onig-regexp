@@ -250,6 +250,11 @@ assert('Invalid regexp') do
   assert_raise(ArgumentError) { OnigRegexp.new '[aio' }
 end
 
+assert('Invalid argument') do
+  assert_raise(ArgumentError) { "".sub(//) }
+  assert_raise(ArgumentError) { "".onig_regexp_sub(OnigRegexp.new('')) }
+end
+
 assert('String#onig_regexp_gsub') do
   test_str = 'hello mruby'
   assert_equal 'h*ll* mr*by', test_str.onig_regexp_gsub(OnigRegexp.new('[aeiou]'), '*')
