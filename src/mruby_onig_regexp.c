@@ -677,6 +677,10 @@ string_gsub(mrb_state* mrb, mrb_value self) {
     return mrb_funcall_with_block(mrb, self, mrb_intern_lit(mrb, "string_gsub"), argc, argv, blk);
   }
 
+  if(argc == 1 && mrb_nil_p(blk)) {
+    return mrb_funcall(mrb, self, "to_enum", 2, mrb_symbol_value(mrb_intern_lit(mrb, "onig_regexp_gsub")), match_expr);
+  }
+
   if(!mrb_nil_p(blk) && !mrb_nil_p(replace_expr)) {
     blk = mrb_nil_value();
   }
