@@ -252,6 +252,7 @@ end
 
 assert('Invalid argument') do
   assert_raise(ArgumentError) { "".sub(//) }
+  assert_raise(ArgumentError) { "".onig_regexp_sub(OnigRegexp.new('')) }
 end
 
 assert('String#onig_regexp_gsub') do
@@ -290,7 +291,7 @@ assert('String#onig_regexp_sub') do
   assert_equal 'h<e>llo mruby', test_str.onig_regexp_sub(OnigRegexp.new('([aeiou])'), '<\1>')
   assert_equal 'h ello mruby', test_str.onig_regexp_sub(OnigRegexp.new('\w')) { |v| v + ' ' }
   assert_equal 'h{e}llo mruby', test_str.onig_regexp_sub(OnigRegexp.new('(?<hoge>[aeiou])'), '{\k<hoge>}')
-  assert_raise(ArgumentError) { "".onig_regexp_sub(OnigRegexp.new('')) }
+  assert_equal "heOlo mruby", test_str.onig_regexp_sub(OnigRegexp.new("l"), "O") { "X" }
 end
 
 assert('String#onig_regexp_split') do
