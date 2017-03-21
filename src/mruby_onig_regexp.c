@@ -672,7 +672,7 @@ string_gsub(mrb_state* mrb, mrb_value self) {
   mrb_value blk, match_expr, replace_expr = mrb_nil_value();
   int const argc = mrb_get_args(mrb, "&o|S", &blk, &match_expr, &replace_expr);
 
-  if(mrb_string_p(match_expr)) {
+  if(mrb_data_check_get_ptr(mrb, match_expr, &mrb_onig_regexp_type) == NULL) {
     mrb_value argv[] = { match_expr, replace_expr };
     return mrb_funcall_with_block(mrb, self, mrb_intern_lit(mrb, "string_gsub"), argc, argv, blk);
   }
@@ -727,7 +727,7 @@ string_scan(mrb_state* mrb, mrb_value self) {
   mrb_value blk, match_expr;
   mrb_get_args(mrb, "&o", &blk, &match_expr);
 
-  if(mrb_string_p(match_expr)) {
+  if(mrb_data_check_get_ptr(mrb, match_expr, &mrb_onig_regexp_type) == NULL) {
     return mrb_funcall_with_block(mrb, self, mrb_intern_lit(mrb, "string_scan"),
                                   1, &match_expr, blk);
   }
@@ -798,7 +798,7 @@ string_split(mrb_state* mrb, mrb_value self) {
     if(!mrb_nil_p(pattern)) { argc = 1; }
   }
 
-  if(mrb_nil_p(pattern) || mrb_string_p(pattern)) {
+  if(mrb_data_check_get_ptr(mrb, pattern, &mrb_onig_regexp_type) == NULL) {
     return mrb_funcall(mrb, self, "string_split", argc, pattern, mrb_fixnum_value(limit));
   }
 
@@ -861,7 +861,7 @@ string_sub(mrb_state* mrb, mrb_value self) {
   mrb_value blk, match_expr, replace_expr = mrb_nil_value();
   int const argc = mrb_get_args(mrb, "&o|S", &blk, &match_expr, &replace_expr);
 
-  if(mrb_string_p(match_expr)) {
+  if(mrb_data_check_get_ptr(mrb, match_expr, &mrb_onig_regexp_type) == NULL) {
     mrb_value argv[] = { match_expr, replace_expr };
     return mrb_funcall_with_block(mrb, self, mrb_intern_lit(mrb, "string_sub"), argc, argv, blk);
   }
