@@ -866,6 +866,10 @@ string_sub(mrb_state* mrb, mrb_value self) {
     return mrb_funcall_with_block(mrb, self, mrb_intern_lit(mrb, "string_sub"), argc, argv, blk);
   }
 
+  if(argc == 1 && mrb_nil_p(blk)) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (given 1, expected 2)");
+  }
+
   if(!mrb_nil_p(blk) && !mrb_nil_p(replace_expr)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "both block and replace expression must not be passed");
   }
