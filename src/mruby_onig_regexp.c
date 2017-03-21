@@ -796,6 +796,7 @@ static mrb_value
 string_split(mrb_state* mrb, mrb_value self) {
   mrb_value pattern = mrb_nil_value(); mrb_int limit = 0;
   int argc = mrb_get_args(mrb, "|oi", &pattern, &limit);
+  mrb_value result;
 
   if(argc == 0) { // check $; global variable
     pattern = mrb_gv_get(mrb, mrb_intern_lit(mrb, "$;"));
@@ -803,10 +804,22 @@ string_split(mrb_state* mrb, mrb_value self) {
   }
 
   if(mrb_data_check_get_ptr(mrb, pattern, &mrb_onig_regexp_type) == NULL) {
+    if (RSTRING_LEN(pattern) == 0) {
+      char* p = RSTRING_PTR(self);
+      char* e = p + RSTRING_LEN(self);
+      int n = 0;
+      result = mrb_ary_new(mrb);
+      while (p+n<e) {
+        mrb_int clen = utf8len(p+n, e);
+        mrb_ary_push(mrb, result, mrb_str_substr(mrb, self, n, clen));
+        n += clen;
+      }
+      return result;
+    }
     return mrb_funcall(mrb, self, "string_split", argc, pattern, mrb_fixnum_value(limit));
   }
 
-  mrb_value const result = mrb_ary_new(mrb);
+  result = mrb_ary_new(mrb);
   if(RSTRING_LEN(self) == 0) { return result; }
 
   OnigRegex reg;

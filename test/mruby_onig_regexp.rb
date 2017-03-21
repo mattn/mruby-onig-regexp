@@ -307,6 +307,7 @@ assert('String#onig_regexp_split') do
   $; = prev_splitter
 
   assert_equal ['h', 'e', 'l', 'l', 'o'], 'hello'.onig_regexp_split(OnigRegexp.new(''))
+  assert_equal ['あ', 'い', 'う', 'え', 'お'], 'あいうえお'.onig_regexp_split('')
   assert_equal ['h', 'e', 'llo'], 'hello'.onig_regexp_split(OnigRegexp.new(''), 3)
   assert_equal ['h', 'i', 'd', 'a', 'd'], 'hi dad'.onig_regexp_split(OnigRegexp.new('\s*'))
 
