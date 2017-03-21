@@ -867,7 +867,7 @@ string_sub(mrb_state* mrb, mrb_value self) {
   }
 
   if(!mrb_nil_p(blk) && !mrb_nil_p(replace_expr)) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "both block and replace expression must not be passed");
+    blk = mrb_nil_value();
   }
 
   OnigRegex reg;

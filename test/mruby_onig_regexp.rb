@@ -286,6 +286,7 @@ assert('String#onig_regexp_sub') do
   assert_equal 'h<e>llo mruby', test_str.onig_regexp_sub(OnigRegexp.new('([aeiou])'), '<\1>')
   assert_equal 'h ello mruby', test_str.onig_regexp_sub(OnigRegexp.new('\w')) { |v| v + ' ' }
   assert_equal 'h{e}llo mruby', test_str.onig_regexp_sub(OnigRegexp.new('(?<hoge>[aeiou])'), '{\k<hoge>}')
+  assert_equal "heOlo mruby", test_str.onig_regexp_sub(OnigRegexp.new("l"), "O") { "X" }
 end
 
 assert('String#onig_regexp_split') do
