@@ -253,6 +253,7 @@ end
 assert('Invalid argument') do
   assert_raise(ArgumentError) { "".sub(//) }
   assert_raise(ArgumentError) { "".onig_regexp_sub(OnigRegexp.new('')) }
+  assert_raise(ArgumentError) { "\xf0".gsub(/[^a]/,"X") }
 end
 
 assert('String#onig_regexp_gsub') do

@@ -721,6 +721,9 @@ string_gsub(mrb_state* mrb, mrb_value self) {
     }
   }
 
+  if (RSTRING_LEN(self) < last_end_pos) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid byte sequence in UTF-8");
+  }
   mrb_str_cat(mrb, result, RSTRING_PTR(self) + last_end_pos, RSTRING_LEN(self) - last_end_pos);
   return result;
 }
