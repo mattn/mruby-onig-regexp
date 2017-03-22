@@ -817,7 +817,7 @@ string_split(mrb_state* mrb, mrb_value self) {
   }
 
   if(mrb_data_check_get_ptr(mrb, pattern, &mrb_onig_regexp_type) == NULL) {
-    if (RSTRING_LEN(pattern) == 0) {
+    if (!mrb_nil_p(pattern) && RSTRING_LEN(pattern) == 0) {
       char* p = RSTRING_PTR(self);
       char* e = p + RSTRING_LEN(self);
       int n = 0;
