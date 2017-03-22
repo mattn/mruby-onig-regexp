@@ -29,6 +29,7 @@ THE SOFTWARE.
 #include <mruby/class.h>
 #include <mruby/variable.h>
 #include <mruby/array.h>
+#include <mruby/hash.h>
 #include <mruby/string.h>
 #include <mruby/data.h>
 #include <mruby/variable.h>
@@ -627,6 +628,13 @@ static void
 append_replace_str(mrb_state* mrb, mrb_value result, mrb_value replace,
                    mrb_value src, OnigRegex reg, OnigRegion* match)
 {
+  if (mrb_hash_p(replace)) {
+    mrb_value v = mrb_hash_get(mrb, replace, mrb_str_substr(mrb, src, match->beg[0], match->end[0] - match->beg[0]));
+    v = mrb_str_to_str(mrb, v);
+    mrb_str_cat_str(mrb, result, v);
+    return;
+  }
+
   mrb_assert(mrb_string_p(replace));
   char const* ch;
   char const* const end = RSTRING_PTR(replace) + RSTRING_LEN(replace);
@@ -680,7 +688,7 @@ replace_expr_error:
 static mrb_value
 string_gsub(mrb_state* mrb, mrb_value self) {
   mrb_value blk, match_expr, replace_expr = mrb_nil_value();
-  int const argc = mrb_get_args(mrb, "&o|S", &blk, &match_expr, &replace_expr);
+  int const argc = mrb_get_args(mrb, "&o|o", &blk, &match_expr, &replace_expr);
 
   if(mrb_data_check_get_ptr(mrb, match_expr, &mrb_onig_regexp_type) == NULL) {
     mrb_value argv[] = { match_expr, replace_expr };
@@ -693,6 +701,10 @@ string_gsub(mrb_state* mrb, mrb_value self) {
 
   if(!mrb_nil_p(blk) && !mrb_nil_p(replace_expr)) {
     blk = mrb_nil_value();
+  }
+
+  if (mrb_nil_p(blk) && !mrb_hash_p(replace_expr)) {
+    replace_expr = mrb_string_type(mrb, replace_expr);
   }
 
   OnigRegex reg;
@@ -889,7 +901,7 @@ string_split(mrb_state* mrb, mrb_value self) {
 static mrb_value
 string_sub(mrb_state* mrb, mrb_value self) {
   mrb_value blk, match_expr, replace_expr = mrb_nil_value();
-  int const argc = mrb_get_args(mrb, "&o|S", &blk, &match_expr, &replace_expr);
+  int const argc = mrb_get_args(mrb, "&o|o", &blk, &match_expr, &replace_expr);
 
   if(mrb_data_check_get_ptr(mrb, match_expr, &mrb_onig_regexp_type) == NULL) {
     mrb_value argv[] = { match_expr, replace_expr };
@@ -902,6 +914,10 @@ string_sub(mrb_state* mrb, mrb_value self) {
 
   if(!mrb_nil_p(blk) && !mrb_nil_p(replace_expr)) {
     blk = mrb_nil_value();
+  }
+
+  if (mrb_nil_p(blk) && !mrb_hash_p(replace_expr)) {
+    replace_expr = mrb_string_type(mrb, replace_expr);
   }
 
   OnigRegex reg;

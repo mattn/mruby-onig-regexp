@@ -267,6 +267,16 @@ assert('String#onig_regexp_gsub') do
   assert_equal "he<l><><l><>o mruby", test_str.onig_regexp_gsub(OnigRegexp.new('(l)'), '<\1><\2>')
 end
 
+assert('String#onig_regexp_gsub with hash') do
+  assert_equal('azc', 'abc'.gsub(/b/, "b" => "z"))
+  assert_equal('ac', 'abc'.gsub(/b/, {}))
+  assert_equal('a1c', 'abc'.gsub(/b/, "b" => 1))
+  assert_equal('aBc', 'abc'.gsub(/b/, Hash.new {|h, k| k.upcase }))
+  assert_equal('a[\&]c', 'abc'.gsub(/b/, "b" => '[\&]'))
+  assert_equal('aBcaBc', 'abcabc'.gsub(/b/, Hash.new {|h, k| h[k] = k.upcase }))
+  assert_equal('aBcDEf', 'abcdef'.gsub(/de|b/, "b" => "B", "de" => "DE"))
+end
+
 assert('String#onig_regexp_scan') do
   test_str = 'mruby world'
   assert_equal ['mruby', 'world'], test_str.onig_regexp_scan(OnigRegexp.new('\w+'))
@@ -293,6 +303,16 @@ assert('String#onig_regexp_sub') do
   assert_equal 'h ello mruby', test_str.onig_regexp_sub(OnigRegexp.new('\w')) { |v| v + ' ' }
   assert_equal 'h{e}llo mruby', test_str.onig_regexp_sub(OnigRegexp.new('(?<hoge>[aeiou])'), '{\k<hoge>}')
   assert_equal "heOlo mruby", test_str.onig_regexp_sub(OnigRegexp.new("l"), "O") { "X" }
+end
+
+assert('String#onig_regexp_sub with hash') do
+  assert_equal('azc', 'abc'.sub(/b/, "b" => "z"))
+  assert_equal('ac', 'abc'.sub(/b/, {}))
+  assert_equal('a1c', 'abc'.sub(/b/, "b" => 1))
+  assert_equal('aBc', 'abc'.sub(/b/, Hash.new {|h, k| k.upcase }))
+  assert_equal('a[\&]c', 'abc'.sub(/b/, "b" => '[\&]'))
+  assert_equal('aBcabc', 'abcabc'.sub(/b/, Hash.new {|h, k| h[k] = k.upcase }))
+  assert_equal('aBcdef', 'abcdef'.sub(/de|b/, "b" => "B", "de" => "DE"))
 end
 
 assert('String#onig_regexp_split') do
