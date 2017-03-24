@@ -341,6 +341,13 @@ assert('String#onig_regexp_split') do
   assert_equal ['1', '', '2', '3', '', '4', '', ''], test_str.onig_regexp_split(OnigRegexp.new(','), -4)
 
   assert_equal [], ''.onig_regexp_split(OnigRegexp.new(','), -1)
+
+  o = Object.new
+  def o.to_str
+    ","
+  end
+  assert_equal ["こ", "に", "ち", "わ"], "こ,に,ち,わ".onig_regexp_split(o)
+  assert_raise(TypeError) { "".onig_regexp_split(1) }
 end
 
 assert('String#index') do
