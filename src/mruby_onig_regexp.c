@@ -831,7 +831,7 @@ string_split(mrb_state* mrb, mrb_value self) {
   if(mrb_data_check_get_ptr(mrb, pattern, &mrb_onig_regexp_type) == NULL) {
     if(!mrb_nil_p(pattern)) { pattern = mrb_string_type(mrb, pattern); }
     if(mrb_string_p(pattern) && RSTRING_LEN(pattern) == 0) {
-      char* p = RSTRING_PTR(self);
+      char* p = mrb_str_to_cstr(mrb, self);
       char* e = p + RSTRING_LEN(self);
       int n = 0;
       result = mrb_ary_new(mrb);
