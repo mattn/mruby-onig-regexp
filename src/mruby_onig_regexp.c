@@ -828,7 +828,12 @@ string_split(mrb_state* mrb, mrb_value self) {
 
   if(argc == 0) { // check $; global variable
     pattern = mrb_gv_get(mrb, mrb_intern_lit(mrb, "$;"));
-    if(!mrb_nil_p(pattern)) { argc = 1; }
+    if (mrb_nil_p(pattern)) {
+      pattern = mrb_str_new_lit(mrb, " ");
+    } else if (!mrb_string_p(pattern) && !ONIG_REGEXP_P(pattern)) {
+      mrb_raise(mrb, E_TYPE_ERROR, "value of $; must be String or Regexp");
+    }
+    argc = 1;
   }
 
   if (!ONIG_REGEXP_P(pattern)) {

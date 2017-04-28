@@ -325,6 +325,10 @@ assert('String#onig_regexp_split') do
   assert_equal ['cute', 'ruby', 'ute'], test_str.onig_regexp_split
   $; = 't'
   assert_equal ['cu', 'e mruby cu', 'e'], test_str.onig_regexp_split
+  $; = nil
+  assert_equal ['cute', 'mruby', 'cute'], test_str.onig_regexp_split
+  $; = 1
+  assert_raise(TypeError) { "".onig_regexp_split }
   $; = prev_splitter
 
   assert_equal ['h', 'e', 'l', 'l', 'o'], 'hello'.onig_regexp_split(OnigRegexp.new(''))
