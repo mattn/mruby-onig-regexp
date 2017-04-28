@@ -323,10 +323,16 @@ assert('String#onig_regexp_split') do
   prev_splitter = $;
   $; = OnigRegexp.new ' \w'
   assert_equal ['cute', 'ruby', 'ute'], test_str.onig_regexp_split
+  assert_equal ['cute', 'ruby', 'ute'], test_str.onig_regexp_split(nil)
+  assert_equal ['cute', 'ruby cute'], test_str.onig_regexp_split(nil, 2)
   $; = 't'
   assert_equal ['cu', 'e mruby cu', 'e'], test_str.onig_regexp_split
+  assert_equal ['cu', 'e mruby cu', 'e'], test_str.onig_regexp_split(nil)
+  assert_equal ['cu', 'e mruby cute'], test_str.onig_regexp_split(nil, 2)
   $; = nil
   assert_equal ['cute', 'mruby', 'cute'], test_str.onig_regexp_split
+  assert_equal ['cute', 'mruby', 'cute'], test_str.onig_regexp_split(nil)
+  assert_equal ['cute', 'mruby cute'], test_str.onig_regexp_split(nil, 2)
   $; = 1
   assert_raise(TypeError) { "".onig_regexp_split }
   $; = prev_splitter
