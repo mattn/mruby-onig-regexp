@@ -845,8 +845,10 @@ string_split(mrb_state* mrb, mrb_value self) {
     return mrb_funcall(mrb, self, "string_split", argc, pattern, mrb_fixnum_value(limit));
   }
 
+  if(RSTRING_LEN(self) == 0) { return mrb_ary_new(mrb); }
+  if(limit == 1) { return mrb_ary_new_from_values(mrb, 1, &self); }
+
   result = mrb_ary_new(mrb);
-  if(RSTRING_LEN(self) == 0) { return result; }
 
   OnigRegex reg;
   Data_Get_Struct(mrb, pattern, &mrb_onig_regexp_type, reg);
