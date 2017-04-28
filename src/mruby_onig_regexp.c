@@ -85,6 +85,9 @@ static struct mrb_data_type mrb_onig_regexp_type = {
   "PosixRegexp", onig_regexp_free
 };
 
+#define ONIG_REGEXP_P(obj) \
+  ((mrb_type(obj) == MRB_TT_DATA) && (DATA_TYPE(obj) == &mrb_onig_regexp_type))
+
 static void
 match_data_free(mrb_state* mrb, void* p) {
   (void)mrb;
@@ -690,7 +693,7 @@ string_gsub(mrb_state* mrb, mrb_value self) {
   mrb_value blk, match_expr, replace_expr = mrb_nil_value();
   int const argc = mrb_get_args(mrb, "&o|o", &blk, &match_expr, &replace_expr);
 
-  if(mrb_data_check_get_ptr(mrb, match_expr, &mrb_onig_regexp_type) == NULL) {
+  if(!ONIG_REGEXP_P(match_expr)) {
     mrb_value argv[] = { match_expr, replace_expr };
     return mrb_funcall_with_block(mrb, self, mrb_intern_lit(mrb, "string_gsub"), argc, argv, blk);
   }
@@ -756,7 +759,7 @@ string_scan(mrb_state* mrb, mrb_value self) {
   mrb_value blk, match_expr;
   mrb_get_args(mrb, "&o", &blk, &match_expr);
 
-  if(mrb_data_check_get_ptr(mrb, match_expr, &mrb_onig_regexp_type) == NULL) {
+  if(!ONIG_REGEXP_P(match_expr)) {
     return mrb_funcall_with_block(mrb, self, mrb_intern_lit(mrb, "string_scan"),
                                   1, &match_expr, blk);
   }
@@ -823,12 +826,17 @@ string_split(mrb_state* mrb, mrb_value self) {
   int argc = mrb_get_args(mrb, "|oi", &pattern, &limit);
   mrb_value result;
 
-  if(argc == 0) { // check $; global variable
+  if(mrb_nil_p(pattern)) { // check $; global variable
     pattern = mrb_gv_get(mrb, mrb_intern_lit(mrb, "$;"));
-    if(!mrb_nil_p(pattern)) { argc = 1; }
+    if (mrb_nil_p(pattern)) {
+      pattern = mrb_str_new_lit(mrb, " ");
+    } else if (!mrb_string_p(pattern) && !ONIG_REGEXP_P(pattern)) {
+      mrb_raise(mrb, E_TYPE_ERROR, "value of $; must be String or Regexp");
+    }
+    if (argc == 0) { argc = 1; }
   }
 
-  if(mrb_data_check_get_ptr(mrb, pattern, &mrb_onig_regexp_type) == NULL) {
+  if (!ONIG_REGEXP_P(pattern)) {
     if(!mrb_nil_p(pattern)) { pattern = mrb_string_type(mrb, pattern); }
     if(mrb_string_p(pattern) && RSTRING_LEN(pattern) == 0) {
       char* p = mrb_str_to_cstr(mrb, self);
@@ -906,7 +914,7 @@ string_sub(mrb_state* mrb, mrb_value self) {
   mrb_value blk, match_expr, replace_expr = mrb_nil_value();
   int const argc = mrb_get_args(mrb, "&o|o", &blk, &match_expr, &replace_expr);
 
-  if(mrb_data_check_get_ptr(mrb, match_expr, &mrb_onig_regexp_type) == NULL) {
+  if(!ONIG_REGEXP_P(match_expr)) {
     mrb_value argv[] = { match_expr, replace_expr };
     return mrb_funcall_with_block(mrb, self, mrb_intern_lit(mrb, "string_sub"), argc, argv, blk);
   }
