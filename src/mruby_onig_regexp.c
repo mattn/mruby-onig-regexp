@@ -145,7 +145,7 @@ onig_regexp_initialize(mrb_state *mrb, mrb_value self) {
   if (result != ONIG_NORMAL) {
     char err[ONIG_MAX_ERROR_MESSAGE_LEN] = "";
     onig_error_code_to_str((OnigUChar*)err, result);
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "'%S' is an invalid regular expression because %S.",
+    mrb_raisef(mrb, E_REGEXP_ERROR, "'%S' is an invalid regular expression because %S.",
                str, mrb_str_new_cstr(mrb, err));
   }
   mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@source"), str);
