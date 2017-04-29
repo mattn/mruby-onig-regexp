@@ -247,7 +247,7 @@ assert('OnigMatchData#regexp') do
 end
 
 assert('Invalid regexp') do
-  assert_raise(ArgumentError) { OnigRegexp.new '[aio' }
+  assert_raise(RegexpError) { OnigRegexp.new '[aio' }
 end
 
 assert('Invalid argument') do
