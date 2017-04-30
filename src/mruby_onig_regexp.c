@@ -184,7 +184,7 @@ onig_match_common(mrb_state* mrb, OnigRegex reg, mrb_value match_value, mrb_valu
   }
 
   struct RObject* const cls = (struct RObject*)mrb_class_get(mrb, "OnigRegexp");
-  mrb_obj_iv_set(mrb, cls, mrb_intern_lit(mrb, "@last_match"), match_value);
+  mrb_obj_iv_set(mrb, cls, mrb_intern_lit(mrb, "@last_match"), MISMATCH_NIL_OR(match_value));
 
   if (mrb_class_get(mrb, "Regexp") == (struct RClass*)cls &&
     mrb_bool(mrb_obj_iv_get(mrb, (struct RObject*)cls, mrb_intern_lit(mrb, "@set_global_variables"))))
