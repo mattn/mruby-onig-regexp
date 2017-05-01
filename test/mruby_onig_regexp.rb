@@ -19,6 +19,9 @@ end
 assert('OnigRegexp.last_match', '15.2.15.6.3') do
   OnigRegexp.new('.*') =~ 'ginka'
   assert_equal 'ginka', OnigRegexp.last_match[0]
+
+  OnigRegexp.new('zzz') =~ 'ginka'
+  assert_nil OnigRegexp.last_match
 end
 
 assert('OnigRegexp.quote', '15.2.15.6.4') do
@@ -157,6 +160,10 @@ end
 
 def onig_match_data_example
   OnigRegexp.new('(\w+)(\w)').match('+aaabb-')
+end
+
+def onig_mismatch_data_example
+  OnigRegexp.new('abc').match('z')
 end
 
 assert('OnigMatchData.new') do
@@ -381,32 +388,58 @@ Regexp = OnigRegexp
 assert('$~') do
   m = onig_match_data_example
   assert_equal m[0], $~[0]
+
+  onig_mismatch_data_example
+  assert_nil $~
 end
 
 assert('$&') do
   m = onig_match_data_example
   assert_equal m[0], $&
+
+  onig_mismatch_data_example
+  assert_nil $&
 end
 
 assert('$`') do
   m = onig_match_data_example
   assert_equal m.pre_match, $`
+
+  onig_mismatch_data_example
+  assert_nil $`
 end
 
 assert('$\'') do
   m = onig_match_data_example
   assert_equal m.post_match, $'
+
+  onig_mismatch_data_example
+  assert_nil $'
 end
 
 assert('$+') do
   m = onig_match_data_example
   assert_equal m[-1], $+
+
+  onig_mismatch_data_example
+  assert_nil $+
 end
 
 assert('$1 to $9') do
   onig_match_data_example
   assert_equal 'aaab', $1
   assert_equal 'b', $2
+  assert_nil $3
+  assert_nil $4
+  assert_nil $5
+  assert_nil $6
+  assert_nil $7
+  assert_nil $8
+  assert_nil $9
+
+  onig_mismatch_data_example
+  assert_nil $1
+  assert_nil $2
   assert_nil $3
   assert_nil $4
   assert_nil $5
