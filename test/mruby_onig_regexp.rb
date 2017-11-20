@@ -73,10 +73,6 @@ assert("OnigRegexp#match", '15.2.15.7.7') do
   reg = OnigRegexp.new("(https?://[^/]+)[-a-zA-Z0-9./]+")
   assert_false reg.match("http://masamitsu-murase.12345/hoge.html").nil?
   assert_nil reg.match("http:///masamitsu-murase.12345/hoge.html")
-  reg.match("http://masamitsu-murase.12345/hoge.html") do |m|
-    assert_true m.is_a?(OnigMatchData)
-    assert_equal "http://masamitsu-murase.12345/hoge.html", m[0]
-  end
 end
 
 assert("OnigRegexp#source", '15.2.15.7.8') do
@@ -156,6 +152,14 @@ end
 
 assert("OnigRegexp#match (none encoding)") do
   assert_equal 2, /\x82/n =~ "あ"
+end
+
+assert("OnigRegexp#match (with block)") do
+  reg = OnigRegexp.new("(https?://[^/]+)[-a-zA-Z0-9./]+")
+  reg.match("http://masamitsu-murase.12345/hoge.html") do |m|
+    assert_true m.is_a?(OnigMatchData)
+    assert_equal "http://masamitsu-murase.12345/hoge.html", m[0]
+  end
 end
 
 assert('OnigRegexp.version') do
