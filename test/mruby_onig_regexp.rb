@@ -154,6 +154,14 @@ assert("OnigRegexp#match (none encoding)") do
   assert_equal 2, /\x82/n =~ "あ"
 end
 
+assert("OnigRegexp#match (with block)") do
+  reg = OnigRegexp.new("(https?://[^/]+)[-a-zA-Z0-9./]+")
+  reg.match("http://masamitsu-murase.12345/hoge.html") do |m|
+    assert_true m.is_a?(OnigMatchData)
+    assert_equal "http://masamitsu-murase.12345/hoge.html", m[0]
+  end
+end
+
 assert('OnigRegexp.version') do
   OnigRegexp.version.kind_of? String
 end

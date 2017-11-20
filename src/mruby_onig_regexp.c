@@ -223,8 +223,9 @@ onig_regexp_match(mrb_state *mrb, mrb_value self) {
   mrb_value str = mrb_nil_value();
   OnigRegex reg;
   mrb_int pos = 0;
+  mrb_value block = mrb_nil_value();
 
-  mrb_get_args(mrb, "o|i", &str, &pos);
+  mrb_get_args(mrb, "o|i&", &str, &pos, &block);
   if (pos < 0 || (pos > 0 && pos >= RSTRING_LEN(str))) {
     return mrb_nil_value();
   }
@@ -237,8 +238,15 @@ onig_regexp_match(mrb_state *mrb, mrb_value self) {
   Data_Get_Struct(mrb, self, &mrb_onig_regexp_type, reg);
 
   mrb_value const ret = create_onig_region(mrb, str, self);
-  return (onig_match_common(mrb, reg, ret, str, pos) == ONIG_MISMATCH)
-      ? mrb_nil_value() : ret;
+  if (onig_match_common(mrb, reg, ret, str, pos) == ONIG_MISMATCH) {
+    return mrb_nil_value();
+  }
+
+  if (mrb_nil_p(block)) {
+    return ret;
+  } else {
+    return mrb_yield(mrb, block, ret);
+  }
 }
 
 static mrb_value
