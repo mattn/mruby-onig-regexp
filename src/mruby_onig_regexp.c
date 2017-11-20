@@ -312,7 +312,7 @@ regexp_expr_str(mrb_state *mrb, mrb_value str, const char *p, int len) {
     unsigned char c, cc;
 
     c = *p;
-    if (c == '/'|| c == '\\') {
+    if (c == '/') {
       buf[0] = '\\'; buf[1] = c;
       mrb_str_cat(mrb, str, buf, 2);
       continue;
