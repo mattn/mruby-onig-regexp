@@ -98,6 +98,7 @@ assert("OnigRegexp#inspect") do
   assert_equal '/(https?:\/\/[^\/]+)[-a-zA-Z0-9.\/]+/', reg.inspect
   assert_equal '/abc\nd\te/mi', OnigRegexp.new("abc\nd\te", OnigRegexp::MULTILINE | OnigRegexp::IGNORECASE).inspect
   assert_equal '/abc/min', OnigRegexp.new("abc", OnigRegexp::MULTILINE | OnigRegexp::IGNORECASE, "none").inspect
+  assert_equal "/\\\\\\+\\//", /\\\+\//.inspect
 end
 
 assert("OnigRegexp#to_s") do
@@ -106,6 +107,7 @@ assert("OnigRegexp#to_s") do
   assert_equal '(?mx-i:ab+c)', OnigRegexp.new("ab+c", OnigRegexp::MULTILINE | OnigRegexp::EXTENDED).to_s
   assert_equal '(?mi-x:ab+c)', /ab+c/im.to_s
   assert_equal '(?mi-x:ab+c)', /ab+c/imn.to_s
+  assert_equal "(?-mix:\\\\\\+)", /\\\+/.to_s
 end
 
 assert("OnigRegexp#to_s (composition)") do
@@ -116,6 +118,10 @@ assert("OnigRegexp#to_s (composition)") do
   re3 = OnigRegexp.new("ab.+c", OnigRegexp::MULTILINE)
   re4 = OnigRegexp.new("xy#{re3}z", OnigRegexp::IGNORECASE)
   assert_equal '(?i-mx:xy(?m-ix:ab.+c)z)', re4.to_s
+
+  re5 = /\\\+/
+  re6 = /xy#{re5}z/
+  assert_equal "(?-mix:xy(?-mix:\\\\\\+)z)", re6.to_s
 end
 
 # Extended patterns.
