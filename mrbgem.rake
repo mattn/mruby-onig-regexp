@@ -107,7 +107,11 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
   elsif spec.respond_to? :search_package and spec.search_package 'oniguruma'
     spec.cc.defines += ['HAVE_ONIGURUMA_H']
     spec.linker.libraries << 'onig'
+  elsif build.cc.respond_to? :search_header_path and build.cc.search_header_path 'onigmo.h'
+    spec.cc.defines += ['HAVE_ONIGMO_H']
+    spec.linker.libraries << 'onigmo'
   elsif build.cc.respond_to? :search_header_path and build.cc.search_header_path 'oniguruma.h'
+    spec.cc.defines += ['HAVE_ONIGURUMA_H']
     spec.linker.libraries << 'onig'
   else
     spec.bundle_onigmo
