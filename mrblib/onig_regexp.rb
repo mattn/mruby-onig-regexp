@@ -46,10 +46,12 @@ class String
   end
 
   # redefine methods with oniguruma regexp version
-  [:sub, :gsub, :split, :scan].each do |v|
-    alias_method "string_#{v}".to_sym, v
-    alias_method v, "onig_regexp_#{v}".to_sym
+  %i[sub gsub split scan].each do |v|
+    alias_method :"string_#{v}", v
+    alias_method v, :"onig_regexp_#{v}"
   end
+
+  alias_method :match?, :onig_regexp_match?
 
   alias_method :old_slice, :slice
   alias_method :old_square_brancket, :[]
