@@ -255,7 +255,6 @@ onig_regexp_match_p(mrb_state *mrb, mrb_value self) {
   mrb_int pos = 0;
   OnigRegex reg;
   OnigUChar const* str_ptr;
-  mrb_value const ret;
 
   mrb_get_args(mrb, "o|i", &str, &pos);
   if (pos < 0 || (pos > 0 && pos >= RSTRING_LEN(str))) {
@@ -269,8 +268,32 @@ onig_regexp_match_p(mrb_state *mrb, mrb_value self) {
 
   Data_Get_Struct(mrb, self, &mrb_onig_regexp_type, reg);
   str_ptr = (OnigUChar const*)RSTRING_PTR(str);
-  return mrb_bool_value(onig_match(reg, str_ptr, str_ptr + RSTRING_LEN(str),
-            str_ptr + pos, NULL, 0) != ONIG_MISMATCH);
+  return mrb_bool_value(onig_search(
+      reg, str_ptr, str_ptr + RSTRING_LEN(str),
+      str_ptr + pos, str_ptr + RSTRING_LEN(str), NULL, 0) != ONIG_MISMATCH);
+}
+
+static mrb_value
+string_match_p(mrb_state *mrb, mrb_value self) {
+  mrb_value str = self;
+  mrb_int pos = 0;
+  OnigRegex reg;
+  OnigUChar const* str_ptr;
+
+  mrb_get_args(mrb, "d|i", &reg, &mrb_onig_regexp_type, &pos);
+  if (pos < 0 || (pos > 0 && pos >= RSTRING_LEN(str))) {
+    return mrb_nil_value();
+  }
+
+  if (mrb_nil_p(str)) {
+    return mrb_nil_value();
+  }
+  str = mrb_string_type(mrb, str);
+
+  str_ptr = (OnigUChar const*)RSTRING_PTR(str);
+  return mrb_bool_value(onig_search(
+      reg, str_ptr, str_ptr + RSTRING_LEN(str),
+      str_ptr + pos, str_ptr + RSTRING_LEN(str), NULL, 0) != ONIG_MISMATCH);
 }
 
 static mrb_value
@@ -1166,6 +1189,7 @@ mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
   mrb_define_method(mrb, mrb->string_class, "onig_regexp_sub", &string_sub, MRB_ARGS_REQ(1) | MRB_ARGS_OPT(1) | MRB_ARGS_BLOCK());
   mrb_define_method(mrb, mrb->string_class, "onig_regexp_split", &string_split, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, mrb->string_class, "onig_regexp_scan", &string_scan, MRB_ARGS_REQ(1) | MRB_ARGS_BLOCK());
+  mrb_define_method(mrb, mrb->string_class, "onig_regexp_match?", &string_match_p, MRB_ARGS_REQ(1) | MRB_ARGS_OPT(1));
 }
 
 void

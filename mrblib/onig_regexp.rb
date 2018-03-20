@@ -51,6 +51,8 @@ class String
     alias_method v, :"onig_regexp_#{v}"
   end
 
+  alias_method :match?, :onig_regexp_match?
+
   alias_method :old_slice, :slice
   alias_method :old_square_brancket, :[]
 

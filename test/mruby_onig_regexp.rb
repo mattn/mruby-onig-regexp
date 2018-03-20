@@ -483,9 +483,17 @@ assert('change set_global_variables') do
   OnigRegexp.set_global_variables = true
 end
 
-assert('OnigRegexp#match') do
-  assert_equal false, OnigRegexp.new('^[123]+$').match?('abc')
-  assert_equal true, OnigRegexp.new('^[123]+$').match?('321')
+assert('OnigRegexp#match?') do
+  assert_false OnigRegexp.new('^[123]+$').match?('abc')
+  assert_true OnigRegexp.new('^[123]+$').match?('321')
+  assert_true OnigRegexp.new('webp').match?('text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8')
+  assert_true(/webp/.match?('text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8'))
+end
+
+assert('String#match?') do
+  assert_equal false, 'abc'.onig_regexp_match?(OnigRegexp.new('^[123]+$'))
+  assert_equal true, '321'.onig_regexp_match?(OnigRegexp.new('^[123]+$'))
+  assert_true 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8'.onig_regexp_match?(OnigRegexp.new('webp'))
 end
 
 Regexp = Object
