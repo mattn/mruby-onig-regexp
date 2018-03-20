@@ -483,6 +483,11 @@ assert('change set_global_variables') do
   OnigRegexp.set_global_variables = true
 end
 
+assert('OnigRegexp#match') do
+  assert_equal false, OnigRegexp.new('^[123]+$').match?('abc')
+  assert_equal true, OnigRegexp.new('^[123]+$').match?('321')
+end
+
 Regexp = Object
 
 assert('OnigRegexp not default') do
