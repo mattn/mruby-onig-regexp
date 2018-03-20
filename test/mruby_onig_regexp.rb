@@ -359,10 +359,22 @@ assert('String#onig_regexp_split') do
   $; = prev_splitter
 
   assert_equal ['h', 'e', 'l', 'l', 'o'], 'hello'.onig_regexp_split(OnigRegexp.new(''))
+  assert_equal ["h", "e", "l", "l", "o", ""], 'hello'.onig_regexp_split(OnigRegexp.new(''), -1)
+  assert_equal ["h", "", "i", "", "!", "", ""], "hi!".onig_regexp_split(OnigRegexp.new('()'), -1)
+  assert_equal ["h", "el", "lo"], "hello".onig_regexp_split(OnigRegexp.new('(el)|(xx)'))
+
   assert_equal ['あ', 'い', 'う', 'え', 'お'], 'あいうえお'.onig_regexp_split('')
+  assert_equal ['あ', 'い', 'う', 'え', 'お', ''], 'あいうえお'.onig_regexp_split('', -1)
   assert_equal ['あいうえお'], 'あいうえお'.onig_regexp_split('', 1)
   assert_equal ['あ', 'いうえお'], 'あいうえお'.onig_regexp_split('', 2)
   assert_equal ['あ', 'い', 'うえお'], 'あいうえお'.onig_regexp_split('', 3)
+
+  assert_equal ['あ', 'い', 'う', 'え', 'お'], 'あいうえお'.onig_regexp_split(OnigRegexp.new(''))
+  assert_equal ['あ', 'い', 'う', 'え', 'お', ''], 'あいうえお'.onig_regexp_split(OnigRegexp.new(''), -1)
+  assert_equal ['あいうえお'], 'あいうえお'.onig_regexp_split(OnigRegexp.new(''), 1)
+  assert_equal ['あ', 'いうえお'], 'あいうえお'.onig_regexp_split(OnigRegexp.new(''), 2)
+  assert_equal ['あ', 'い', 'うえお'], 'あいうえお'.onig_regexp_split(OnigRegexp.new(''), 3)
+
   assert_equal ['h', 'e', 'llo'], 'hello'.onig_regexp_split(OnigRegexp.new(''), 3)
   assert_equal ['h', 'i', 'd', 'a', 'd'], 'hi dad'.onig_regexp_split(OnigRegexp.new('\s*'))
 

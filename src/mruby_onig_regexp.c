@@ -883,7 +883,8 @@ static mrb_value
 string_split(mrb_state* mrb, mrb_value self) {
   mrb_value pattern = mrb_nil_value(); mrb_int limit = 0;
   int argc = mrb_get_args(mrb, "|oi", &pattern, &limit);
-  mrb_value result;
+  mrb_value result, tmp;
+  mrb_bool lim_p = !(argc == 2 && 0 < limit);
 
   if(mrb_nil_p(pattern)) { // check $; global variable
     pattern = mrb_gv_get(mrb, mrb_intern_lit(mrb, "$;"));
@@ -914,47 +915,60 @@ string_split(mrb_state* mrb, mrb_value self) {
   Data_Get_Struct(mrb, pattern, &mrb_onig_regexp_type, reg);
   mrb_value const match_value = create_onig_region(mrb, self, pattern);
   OnigRegion* const match = (OnigRegion*)DATA_PTR(match_value);
-  int last_end_pos = 0, next_match_pos = 0;
-  mrb_int num_matches = 0;
+  char *ptr = mrb_str_to_cstr(mrb, self);
+  mrb_int len = RSTRING_LEN(self);
+  mrb_int start = 0, beg = 0, end = 0;
+  mrb_int idx = 0, i = 0;
+  mrb_int last_null = 0;
 
-  while (limit <= 0 || (limit - 1) > num_matches) {
-    int i;
-    if(next_match_pos >= RSTRING_LEN(self) ||
-       onig_match_common(mrb, reg, match_value, self, next_match_pos) == ONIG_MISMATCH) { break; }
-
-    if (last_end_pos == match->end[0]) {
-      ++next_match_pos;
-      // Remove this loop if not using UTF-8
-      for (; next_match_pos < RSTRING_LEN(self) && (RSTRING_PTR(self)[next_match_pos] & 0xC0) == 0x80;
-          ++next_match_pos) {}
-    } else {
-      mrb_ary_push(mrb, result, str_substr(
-          mrb, self, last_end_pos, match->beg[0] - last_end_pos));
-      // If there are captures, add them to the array
-      for (i = 1; i < match->num_regs; ++i) {
-        mrb_ary_push(mrb, result, str_substr(
-            mrb, self, match->beg[i], match->end[i] - match->beg[i]));
+  if (argc == 2) { i = 1; }
+  while ((end = onig_match_common(mrb, reg, match_value, self, start)) >= 0) {
+    if (start == end && match->beg[0] == match->end[0]) {
+      if (!ptr) {
+        mrb_ary_push(mrb, result, mrb_str_new_lit(mrb, ""));
+        break;
       }
-      last_end_pos = match->end[0];
-      next_match_pos = last_end_pos;
-      ++num_matches;
+      else if (last_null == 1) {
+        mrb_ary_push(mrb, result, str_substr(mrb, self, beg, utf8len(ptr+beg, ptr+len)));
+        beg = start;
+      }
+      else {
+        if (start == len)
+          start++;
+        else
+          start += utf8len(ptr+start, ptr+len);
+        last_null = 1;
+        continue;
+      }
     }
-  }
-  if (last_end_pos <= RSTRING_LEN(self)) {
-    mrb_ary_push(mrb, result, str_substr(
-        mrb, self, last_end_pos, RSTRING_LEN(self) - last_end_pos));
+    else {
+      mrb_ary_push(mrb, result, str_substr(mrb, self, beg, end-beg));
+      beg = start = match->end[0];
+    }
+    last_null = 0;
+
+    for (idx=1; idx < match->num_regs; idx++) {
+      if (match->beg[idx] == -1) continue;
+      if (match->beg[idx] == match->end[idx])
+        tmp = mrb_str_new_lit(mrb, "");
+      else
+        tmp = str_substr(mrb, self, match->beg[idx], match->end[idx]-match->beg[idx]);
+      mrb_ary_push(mrb, result, tmp);
+    }
+    if (!lim_p && limit <= ++i) break;
   }
 
-  if (limit == 0) { // remove empty trailing elements
-    int count = 0, i;
-    for (i = RARRAY_LEN(result); i > 0; --i) {
-      mrb_assert(mrb_string_p(RARRAY_PTR(result)[i - 1]));
-      if (RSTRING_LEN(RARRAY_PTR(result)[i - 1]) != 0) { break; }
-      else { ++count; }
-    }
-    if(count > 0) {
-      return mrb_ary_new_from_values(mrb, RARRAY_LEN(result) - count, RARRAY_PTR(result));
-    }
+  if (RSTRING_LEN(self) > 0 && (!lim_p || RSTRING_LEN(self) > beg || limit < 0)) {
+    if (RSTRING_LEN(self) == beg)
+      tmp = mrb_str_new_lit(mrb, "");
+    else
+      tmp = str_substr(mrb, self, beg, RSTRING_LEN(self)-beg);
+    mrb_ary_push(mrb, result, tmp);
+  }
+  if (lim_p && limit == 0) {
+    while ((len = RARRAY_LEN(result)) > 0 &&
+        (tmp = mrb_ary_ref(mrb, result, len-1), RSTRING_LEN(tmp) == 0))
+      mrb_ary_pop(mrb, result);
   }
 
   return result;
