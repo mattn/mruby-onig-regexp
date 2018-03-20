@@ -875,18 +875,11 @@ string_split(mrb_state* mrb, mrb_value self) {
   if (!ONIG_REGEXP_P(pattern)) {
     if(!mrb_nil_p(pattern)) { pattern = mrb_string_type(mrb, pattern); }
     if(mrb_string_p(pattern) && RSTRING_LEN(pattern) == 0) {
-      char* p = mrb_str_to_cstr(mrb, self);
-      char* e = p + RSTRING_LEN(self);
-      int n = 0;
-      result = mrb_ary_new(mrb);
-      while (p+n<e) {
-        mrb_int clen = utf8len(p+n, e);
-        mrb_ary_push(mrb, result, str_substr(mrb, self, n, clen));
-        n += clen;
-      }
-      return result;
+      /* Special case - split into chars */
+      pattern = mrb_funcall(mrb, mrb_obj_value(mrb_class_get(mrb, "OnigRegexp")), "new", 1, pattern);
+    } else {
+      return mrb_funcall(mrb, self, "string_split", argc, pattern, mrb_fixnum_value(limit));
     }
-    return mrb_funcall(mrb, self, "string_split", argc, pattern, mrb_fixnum_value(limit));
   }
 
   if(RSTRING_LEN(self) == 0) { return mrb_ary_new(mrb); }
