@@ -54,6 +54,8 @@ assert("OnigRegexp#===", '15.2.15.7.4') do
   reg = OnigRegexp.new("(https?://[^/]+)[-a-zA-Z0-9./]+")
   assert_true reg === "http://example.com"
   assert_false reg === "htt://example.com"
+
+  assert_false /a/ === Object.new
 end
 
 assert('OnigRegexp#=~', '15.2.15.7.5') do
