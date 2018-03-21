@@ -126,15 +126,23 @@ end
 
 # Extended patterns.
 assert("OnigRegexp#match (no flags)") do
+  o = Object.new
+  def o.to_str
+    "obj"
+  end
   [
     [ ".*", "abcd\nefg", "abcd" ],
     [ "^a.", "abcd\naefg", "ab" ],
     [ "^a.", "bacd\naefg", "ae" ],
-    [ ".$", "bacd\naefg", "d" ]
+    [ ".$", "bacd\naefg", "d" ],
+    [ "bc", :abc, "bc"],
+    [ "bj", o, "bj"],
   ].each do |reg, str, result|
     m = OnigRegexp.new(reg).match(str)
     assert_equal result, m[0] if assert_false m.nil?
   end
+
+  assert_raise(TypeError) { /a/.match(Object.new) }
 end
 
 assert("OnigRegexp#match (multiline)") do
@@ -500,6 +508,7 @@ end
 
 assert('OnigRegexp#match?') do
   assert_false OnigRegexp.new('^[123]+$').match?('abc')
+  assert_false OnigRegexp.new('^[123]+$').match?(:abc)
   assert_true OnigRegexp.new('^[123]+$').match?('321')
   assert_true OnigRegexp.new('webp').match?('text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8')
   assert_true(/webp/.match?('text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8'))

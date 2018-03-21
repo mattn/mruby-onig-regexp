@@ -219,6 +219,22 @@ onig_match_common(mrb_state* mrb, OnigRegex reg, mrb_value match_value, mrb_valu
 }
 
 static mrb_value
+reg_operand(mrb_state *mrb, mrb_value obj) {
+  mrb_value ret;
+
+  if (mrb_symbol_p(obj)) {
+    ret = mrb_sym2str(mrb, mrb_symbol(obj));
+    if (mrb_undef_p(ret)) {
+      mrb_bug(mrb, "can not intern %S", obj);
+    }
+  }
+  else {
+    ret = mrb_string_type(mrb, obj);
+  }
+  return ret;
+}
+
+static mrb_value
 onig_regexp_match(mrb_state *mrb, mrb_value self) {
   mrb_value str = mrb_nil_value();
   OnigRegex reg;
@@ -233,7 +249,7 @@ onig_regexp_match(mrb_state *mrb, mrb_value self) {
   if (mrb_nil_p(str)) {
     return mrb_nil_value();
   }
-  str = mrb_string_type(mrb, str);
+  str = reg_operand(mrb, str);
 
   Data_Get_Struct(mrb, self, &mrb_onig_regexp_type, reg);
 
@@ -264,7 +280,7 @@ onig_regexp_match_p(mrb_state *mrb, mrb_value self) {
   if (mrb_nil_p(str)) {
     return mrb_nil_value();
   }
-  str = mrb_string_type(mrb, str);
+  str = reg_operand(mrb, str);
 
   Data_Get_Struct(mrb, self, &mrb_onig_regexp_type, reg);
   str_ptr = (OnigUChar const*)RSTRING_PTR(str);
