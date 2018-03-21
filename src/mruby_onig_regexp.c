@@ -242,14 +242,13 @@ onig_regexp_match(mrb_state *mrb, mrb_value self) {
   mrb_value block = mrb_nil_value();
 
   mrb_get_args(mrb, "o|i&", &str, &pos, &block);
-  if (pos < 0 || (pos > 0 && pos >= RSTRING_LEN(str))) {
-    return mrb_nil_value();
-  }
-
   if (mrb_nil_p(str)) {
     return mrb_nil_value();
   }
   str = reg_operand(mrb, str);
+  if (pos < 0 || (pos > 0 && pos >= RSTRING_LEN(str))) {
+    return mrb_nil_value();
+  }
 
   Data_Get_Struct(mrb, self, &mrb_onig_regexp_type, reg);
 
@@ -273,14 +272,13 @@ onig_regexp_match_p(mrb_state *mrb, mrb_value self) {
   OnigUChar const* str_ptr;
 
   mrb_get_args(mrb, "o|i", &str, &pos);
-  if (pos < 0 || (pos > 0 && pos >= RSTRING_LEN(str))) {
-    return mrb_nil_value();
-  }
-
   if (mrb_nil_p(str)) {
     return mrb_nil_value();
   }
   str = reg_operand(mrb, str);
+  if (pos < 0 || (pos > 0 && pos >= RSTRING_LEN(str))) {
+    return mrb_nil_value();
+  }
 
   Data_Get_Struct(mrb, self, &mrb_onig_regexp_type, reg);
   str_ptr = (OnigUChar const*)RSTRING_PTR(str);

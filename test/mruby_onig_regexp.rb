@@ -75,6 +75,12 @@ assert("OnigRegexp#match", '15.2.15.7.7') do
   reg = OnigRegexp.new("(https?://[^/]+)[-a-zA-Z0-9./]+")
   assert_false reg.match("http://masamitsu-murase.12345/hoge.html").nil?
   assert_nil reg.match("http:///masamitsu-murase.12345/hoge.html")
+
+  reg = OnigRegexp.new('def')
+  assert_equal "def", reg.match('abcdef', 3)[0]
+  assert_nil reg.match('abcdef', -1)
+  assert_nil reg.match('abcdef', 4)
+  assert_nil reg.match(nil, 3)
 end
 
 assert("OnigRegexp#source", '15.2.15.7.8') do
@@ -514,6 +520,12 @@ assert('OnigRegexp#match?') do
   assert_true OnigRegexp.new('^[123]+$').match?('321')
   assert_true OnigRegexp.new('webp').match?('text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8')
   assert_true(/webp/.match?('text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8'))
+
+  reg = OnigRegexp.new('def')
+  assert_true reg.match?('abcdef', 3)
+  assert_false reg.match?('abcdef', -1)
+  assert_false reg.match?('abcdef', 4)
+  assert_false reg.match?(nil, 3)
 end
 
 assert('String#match?') do
