@@ -23,6 +23,8 @@ class OnigRegexp
   # ISO 15.2.15.7.4
   def ===(str)
     not self.match(str).nil?
+  rescue TypeError
+    false
   end
 
   # ISO 15.2.15.7.5
