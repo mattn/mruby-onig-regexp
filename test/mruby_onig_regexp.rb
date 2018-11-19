@@ -134,17 +134,13 @@ end
 
 # Extended patterns.
 assert("OnigRegexp#match (no flags)") do
-  o = Object.new
-  def o.to_str
-    "obj"
-  end
   [
     [ ".*", "abcd\nefg", "abcd" ],
     [ "^a.", "abcd\naefg", "ab" ],
     [ "^a.", "bacd\naefg", "ae" ],
     [ ".$", "bacd\naefg", "d" ],
     [ "bc", :abc, "bc"],
-    [ "bj", o, "bj"],
+    [ "bj", "obj", "bj"],
   ].each do |reg, str, result|
     m = OnigRegexp.new(reg).match(str)
     assert_equal result, m[0] if assert_false m.nil?
@@ -404,11 +400,7 @@ assert('String#onig_regexp_split') do
 
   assert_equal [], ''.onig_regexp_split(OnigRegexp.new(','), -1)
 
-  o = Object.new
-  def o.to_str
-    ","
-  end
-  assert_equal ["こ", "に", "ち", "わ"], "こ,に,ち,わ".onig_regexp_split(o)
+  assert_equal ["こ", "に", "ち", "わ"], "こ,に,ち,わ".onig_regexp_split(",")
   assert_raise(TypeError) { "".onig_regexp_split(1) }
 end
 
