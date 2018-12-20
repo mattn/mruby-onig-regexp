@@ -526,6 +526,10 @@ assert('String#match?') do
   assert_true 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8'.onig_regexp_match?(OnigRegexp.new('webp'))
 end
 
+assert 'raises RegexpError' do
+  assert_raise(RegexpError) { OnigRegexp.new('bad(?<aa-bb>)') }
+end
+
 Regexp = Object
 
 assert('OnigRegexp not default') do
