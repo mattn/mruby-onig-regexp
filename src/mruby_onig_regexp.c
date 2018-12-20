@@ -144,7 +144,7 @@ onig_regexp_initialize(mrb_state *mrb, mrb_value self) {
                         cflag, enc, ONIG_SYNTAX_RUBY, &einfo);
   if (result != ONIG_NORMAL) {
     char err[ONIG_MAX_ERROR_MESSAGE_LEN] = "";
-    onig_error_code_to_str((OnigUChar*)err, result);
+    onig_error_code_to_str((OnigUChar*)err, result, &einfo);
     mrb_raisef(mrb, E_REGEXP_ERROR, "'%S' is an invalid regular expression because %S.",
                str, mrb_str_new_cstr(mrb, err));
   }
