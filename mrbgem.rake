@@ -15,7 +15,7 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
       linker.libraries = ['pthread']
     end
 
-    version = '6.1.2'
+    version = '6.1.3'
     oniguruma_dir = "#{build_dir}/onigmo-#{version}"
     oniguruma_lib = libfile "#{oniguruma_dir}/.libs/libonigmo"
     unless ENV['OS'] == 'Windows_NT'
@@ -36,8 +36,8 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
     file header do |t|
       FileUtils.mkdir_p oniguruma_dir
       Dir.chdir(build_dir) do
-        _pp 'extracting', "Onigmo-#{version}"
-        `gzip -dc "#{dir}/Onigmo-#{version}.tar.gz" | tar xf -`
+        _pp 'extracting', "onigmo-#{version}"
+        `gzip -dc "#{dir}/onigmo-#{version}.tar.gz" | tar xf -`
       end
     end
 
@@ -66,7 +66,7 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
           _pp 'autotools', oniguruma_dir
           run_command e, './autogen.sh' if File.exists? 'autogen.sh'
           run_command e, "./configure --disable-shared --enable-static #{host}"
-          run_command e, 'make'
+          run_command e, "make -j#{$rake_jobs || 1}"
         else
           run_command e, 'cmd /c "copy /Y win32 > NUL"'
           if visualcpp
@@ -92,7 +92,11 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
       file libmruby_a => Dir.glob("#{libonig_objs_dir}/*#{objext}")
     end
 
-    file libmruby_a => Dir.glob("#{libonig_objs_dir}/*#{objext}") if File.exists? oniguruma_lib
+    if File.exists? oniguruma_lib
+      objs = Dir.glob("#{libonig_objs_dir}/*#{objext}")
+      file libmruby_a => objs
+      objs.each{|obj| file obj => oniguruma_lib }
+    end
 
     task :mruby_onig_regexp_with_compile_option do
       cc.include_paths << oniguruma_dir
