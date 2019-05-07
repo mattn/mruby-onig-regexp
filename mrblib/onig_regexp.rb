@@ -85,13 +85,7 @@ class String
   alias_method :slice, :[]
 
   def slice!(*args)
-    if args.size == 1 && args[0].class == Regexp
-      match_data = args[0].match(self)
-      result = nil
-      if match_data
-        result = match_data.to_s
-      end
-    elsif args.size < 2
+    if args.size < 2
       result = slice(*args)
       nth = args[0]
 
