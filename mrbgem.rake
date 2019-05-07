@@ -1,6 +1,7 @@
 MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
   spec.license = 'MIT'
   spec.authors = 'mattn'
+  spec.add_dependency 'mruby-string-ext', core: 'mruby-string-ext'
 
   def spec.bundle_onigmo
     return if @onigmo_bundled

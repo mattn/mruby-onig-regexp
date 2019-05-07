@@ -49,8 +49,10 @@ class String
 
   # redefine methods with oniguruma regexp version
   %i[sub gsub split scan].each do |v|
-    alias_method :"string_#{v}", v
-    alias_method v, :"onig_regexp_#{v}"
+    if respond_to? v
+      alias_method :"string_#{v}", v
+      alias_method v, :"onig_regexp_#{v}"
+    end
   end
 
   alias_method :match?, :onig_regexp_match?
@@ -83,7 +85,13 @@ class String
   alias_method :slice, :[]
 
   def slice!(*args)
-    if args.size < 2
+    if args.size == 1 && args[0].class == Regexp
+      match_data = args[0].match(self)
+      result = nil
+      if match_data
+        result = match_data.to_s
+      end
+    elsif args.size < 2
       result = slice(*args)
       nth = args[0]
 
