@@ -47,6 +47,14 @@ class String
     end
   end
 
+  # ISO 15.2.10.5.27
+  unless method_defined?(:match)
+    def match(re, pos=0, &block)
+      re.match(self, pos, &block)
+    end
+  end
+
+
   # redefine methods with oniguruma regexp version
   %i[sub gsub split scan].each do |v|
     alias_method :"string_#{v}", v if method_defined?(v)
