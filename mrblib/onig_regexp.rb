@@ -15,6 +15,10 @@ class OnigRegexp
     @last_match
   end
 
+  def self.last_match=(match)
+    @last_match = match
+  end
+
   # ISO 15.2.15.7.2
   def initialize_copy(other)
     initialize(other.source, other.options)
@@ -57,6 +61,7 @@ class String
 
   alias_method :old_slice, :slice
   alias_method :old_square_brancket, :[]
+  alias_method :old_square_brancket_equal, :[]=
 
   def [](*args)
     return old_square_brancket(*args) unless args[0].class == Regexp
@@ -81,6 +86,25 @@ class String
   end
 
   alias_method :slice, :[]
+
+  def []=(*args)
+    return old_square_brancket_equal(*args) unless args[0].class == Regexp
+
+    n_args = args.size
+    case n_args
+    when 2
+      match = args[0].match(self)
+      self[match.begin(0)...match.end(0)] = args[1]
+    when 3
+      match = args[0].match(self)
+      n = args[1]
+      self[match.begin(n)...match.end(n)] = args[2]
+    else
+      raise ArgumentError, "wrong number of arguments (#{n_args} for 2..3)"
+    end
+
+    self
+  end
 
   def slice!(*args)
     if args.size < 2
