@@ -537,9 +537,25 @@ assert('String#match?') do
   assert_true 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8'.onig_regexp_match?(OnigRegexp.new('webp'))
 end
 
-#assert('String#slice!') do
-#  assert_equal "a", 'abc'.slice(/./m)
-#end
+assert('String#[]=') do
+  string = 'abc'
+  string[OnigRegexp.new('.')] = 'A'
+  assert_equal 'Abc', string
+  string[OnigRegexp.new('.(.)'), 1] = 'B'
+  assert_equal 'ABc', string
+  string[OnigRegexp.new('(?<a>.)(?<b>.)(?<c>.)'), 'c'] = 'C'
+  assert_equal 'ABC', string
+
+  assert_raise(ArgumentError) do
+    string[OnigRegexp.new('.'), 0, :extra] = 'x'
+  end
+end
+
+assert('String#slice!') do
+  string = 'abc'
+  assert_equal 'a', string.slice!(OnigRegexp.new('.'))
+  assert_equal 'bc', string
+end
 
 assert 'raises RegexpError' do
   assert_raise(RegexpError) { OnigRegexp.new('bad(?<aa-bb>)') }
@@ -548,6 +564,7 @@ end
 Regexp = Object
 
 assert('OnigRegexp not default') do
+  $~ = nil
   onig_match_data_example
   assert_nil $~
 end
