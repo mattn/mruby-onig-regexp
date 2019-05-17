@@ -553,6 +553,7 @@ end
 Regexp = Object
 
 assert('OnigRegexp not default') do
+  $~ = nil
   onig_match_data_example
   assert_nil $~
 end
