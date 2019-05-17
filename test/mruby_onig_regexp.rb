@@ -404,6 +404,17 @@ assert('String#onig_regexp_split') do
   assert_raise(TypeError) { "".onig_regexp_split(1) }
 end
 
+assert('String#onig_regexp_match') do
+  reg = OnigRegexp.new('d(e)f')
+  assert_equal ['def', 'e'], 'abcdef'.match(reg).to_a
+  assert_nil 'abcdef'.match(reg, 4)
+  match_data = nil
+  'abcdef'.match(reg) do |m|
+    match_data = m
+  end
+  assert_equal ['def', 'e'], match_data.to_a
+end
+
 assert('String#index') do
   assert_equal 0, 'abc'.index('a')
   assert_nil 'abc'.index('d')
