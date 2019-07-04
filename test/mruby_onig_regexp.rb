@@ -558,7 +558,7 @@ assert('String#slice!') do
 end
 
 assert 'raises RegexpError' do
-  assert_raise(RegexpError) { OnigRegexp.new('bad(?<aa-bb>)') }
+  assert_raise(RegexpError) { OnigRegexp.new('*') }
 end
 
 Regexp = Object
