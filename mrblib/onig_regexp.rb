@@ -52,10 +52,8 @@ class String
   end
 
   # ISO 15.2.10.5.27
-  unless method_defined?(:match)
-    def match(re, pos=0, &block)
-      re.match(self, pos, &block)
-    end
+  def match(re, pos=0, &block)
+    re.match(self, pos, &block)
   end
 
 
