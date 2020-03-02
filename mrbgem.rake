@@ -61,7 +61,7 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
           'AR' => build.archiver.command }
         unless ENV['OS'] == 'Windows_NT'
           if build.kind_of? MRuby::CrossBuild
-            host = "--host #{build.name}"
+            host = "--host #{build.host_target ? build.host_target : build.name}"
           end
 
           _pp 'autotools', oniguruma_dir
