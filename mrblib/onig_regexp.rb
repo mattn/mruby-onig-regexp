@@ -100,11 +100,13 @@ class String
     case n_args
     when 2
       match = args[0].match(self)
-      self[match.begin(0)...match.end(0)] = args[1]
+      beg = match.begin(0)
+      self[beg, match.end(0) - beg] = args[1]
     when 3
       match = args[0].match(self)
       n = args[1]
-      self[match.begin(n)...match.end(n)] = args[2]
+      beg = match.begin(n)
+      self[beg, match.end(n) - beg] = args[2]
     else
       raise ArgumentError, "wrong number of arguments (#{n_args} for 2..3)"
     end
