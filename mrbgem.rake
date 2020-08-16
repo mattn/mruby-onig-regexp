@@ -16,7 +16,7 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
       linker.libraries = ['pthread']
     end
 
-    version = '6.1.3'
+    version = '6.2.0'
     oniguruma_dir = "#{build_dir}/onigmo-#{version}"
     oniguruma_lib = libfile "#{oniguruma_dir}/.libs/libonigmo"
     unless ENV['OS'] == 'Windows_NT'
