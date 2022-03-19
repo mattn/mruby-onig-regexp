@@ -102,7 +102,11 @@ static mrb_value
 str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 {
 #ifdef MRB_UTF8_STRING
-  return mrb_str_new(mrb, RSTRING_PTR(str) + beg, len);
+  if (len > 0) {
+    return mrb_str_new(mrb, RSTRING_PTR(str) + beg, len);
+  } else {
+    return mrb_str_new(mrb, NULL, 0);
+  }
 #else
   return mrb_str_substr(mrb, str, beg, len);
 #endif
