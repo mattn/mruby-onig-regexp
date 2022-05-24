@@ -65,7 +65,7 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
           end
 
           _pp 'autotools', oniguruma_dir
-          run_command e, './autogen.sh' if File.exists? 'autogen.sh'
+          run_command e, './autogen.sh' if File.exist? 'autogen.sh'
           run_command e, "./configure --disable-shared --enable-static #{host}"
           run_command e, "make -j#{$rake_jobs || 1}"
         else
@@ -93,7 +93,7 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
       file libmruby_a => Dir.glob("#{libonig_objs_dir}/*#{objext}")
     end
 
-    if File.exists? oniguruma_lib
+    if File.exist? oniguruma_lib
       objs = Dir.glob("#{libonig_objs_dir}/*#{objext}")
       file libmruby_a => objs
       objs.each{|obj| file obj => oniguruma_lib }
