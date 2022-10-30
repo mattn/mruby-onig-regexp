@@ -12,7 +12,7 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
     require 'open3'
 
     # remove libonig, instead link directly against pthread
-    unless ENV['OS'] == 'Windows_NT'
+    unless ENV['OS'] == 'Windows_NT' || build.kind_of?(MRuby::CrossBuild)
       linker.libraries = ['pthread']
     end
 
