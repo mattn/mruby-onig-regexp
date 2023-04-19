@@ -12,6 +12,14 @@ MRuby::Build.new do |conf|
 end
 ```
 
+If `libonig` is already installed on your system, the gem will use it;
+otherwise, it will build a local copy from source code and statically
+link to it.
+
+You can force the gem to always use its own version of the library by
+setting `MRUBY_ONIGMO_USE_INTERNAL=1` in the environment.
+
+
 ## Example
 ```ruby
 
