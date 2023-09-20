@@ -1,3 +1,5 @@
+MRUBY_ONIGMO_USE_INTERNAL = "MRUBY_ONIGMO_USE_INTERNAL"
+
 MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
   spec.license = 'MIT'
   spec.authors = 'mattn'
@@ -106,19 +108,32 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
     file "#{dir}/src/mruby_onig_regexp.c" => [:mruby_onig_regexp_with_compile_option, oniguruma_lib]
   end
 
-  if spec.respond_to? :search_package and spec.search_package 'onigmo'
-    spec.cc.defines += ['HAVE_ONIGMO_H']
-    spec.linker.libraries << 'onigmo'
-  elsif spec.respond_to? :search_package and spec.search_package 'oniguruma'
-    spec.cc.defines += ['HAVE_ONIGURUMA_H']
-    spec.linker.libraries << 'onig'
-  elsif build.cc.respond_to? :search_header_path and build.cc.search_header_path 'onigmo.h'
-    spec.cc.defines += ['HAVE_ONIGMO_H']
-    spec.linker.libraries << 'onigmo'
-  elsif build.cc.respond_to? :search_header_path and build.cc.search_header_path 'oniguruma.h'
-    spec.cc.defines += ['HAVE_ONIGURUMA_H']
-    spec.linker.libraries << 'onig'
-  else
-    spec.bundle_onigmo
+  # If the system has libonig installed and we can find it, we use
+  # that instead of building from source.  The user can override this
+  # and go directly to building the lib from the included sources by
+  # setting the environment variable MRUBY_ONIGMO_USE_INTERNAL to a
+  # non-empty string.
+  use_internal_onigmo = ENV.fetch(MRUBY_ONIGMO_USE_INTERNAL, '') != ''
+
+  unless use_internal_onigmo
+    if spec.respond_to? :search_package and spec.search_package 'onigmo'
+      spec.cc.defines += ['HAVE_ONIGMO_H']
+      spec.linker.libraries << 'onigmo'
+    elsif spec.respond_to? :search_package and spec.search_package 'oniguruma'
+      spec.cc.defines += ['HAVE_ONIGURUMA_H']
+      spec.linker.libraries << 'onig'
+    elsif build.cc.respond_to? :search_header_path and build.cc.search_header_path 'onigmo.h'
+      spec.cc.defines += ['HAVE_ONIGMO_H']
+      spec.linker.libraries << 'onigmo'
+    elsif build.cc.respond_to? :search_header_path and build.cc.search_header_path 'oniguruma.h'
+      spec.cc.defines += ['HAVE_ONIGURUMA_H']
+      spec.linker.libraries << 'onig'
+    else
+      _pp "Can't find libonig; building from source."
+      use_internal_onigmo = true
+    end
   end
+
+  #
+  spec.bundle_onigmo if use_internal_onigmo
 end
