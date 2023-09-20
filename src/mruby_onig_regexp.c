@@ -228,9 +228,6 @@ reg_operand(mrb_state *mrb, mrb_value obj) {
 
   if (mrb_symbol_p(obj)) {
     ret = mrb_sym2str(mrb, mrb_symbol(obj));
-    if (mrb_undef_p(ret)) {
-      mrb_bug(mrb, "can not intern %S", obj);
-    }
   }
   else {
     ret = mrb_string_type(mrb, obj);
