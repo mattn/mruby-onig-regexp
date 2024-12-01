@@ -67,7 +67,7 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
           _pp 'autotools', oniguruma_dir
           run_command e, './autogen.sh' if File.exist? 'autogen.sh'
           run_command e, "./configure --disable-shared --enable-static #{host}"
-          run_command e, "make -j#{$rake_jobs || 1}"
+          run_command e, "make -j#{$rake_jobs || 1} libonigmo.la onigmo.pc"
         else
           run_command e, 'cmd /c "copy /Y win32 > NUL"'
           if visualcpp
