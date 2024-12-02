@@ -1,0 +1,40 @@
+name: mrbgem test
+
+on:
+  schedule:
+    - cron: 0 0 * * *
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, macos-latest]
+        mruby_version:
+        - master
+        - 3.3.0
+        - 3.2.0
+        - 3.1.0
+        # - 3.0.0
+        - 2.1.2
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.os }} & mruby-${{ matrix.mruby_version }}
+    env:
+      MRUBY_VERSION: ${{ matrix.mruby_version }}
+    steps:
+    - uses: actions/checkout@v2
+    - name: install package
+      if: startsWith(matrix.os, 'ubuntu')
+      run: sudo apt install libonig-dev
+    - name: install package
+      if: startsWith(matrix.os, 'macos')
+      run: brew install oniguruma
+    - name: download mruby
+      run: git clone --depth 1 -b $MRUBY_VERSION "https://github.com/mruby/mruby.git" mruby
+    - name: run test
+      run: cd mruby && MRUBY_CONFIG="../.github/workflows/config.rb" ./minirake all test
