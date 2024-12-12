@@ -12,6 +12,22 @@ MRuby::Build.new do |conf|
 end
 ```
 
+If libonig development files are installed on the host system, those
+will be used.  Otherwise, the bundled copy will be built and used
+instead.  If you want rake to **always** use the bundled library, this
+can be done by calling `bundle_onigmo` in the gem declaration body:
+
+```ruby
+MRuby::Build.new do |conf|
+    # ... (snip) ...
+
+    conf.gem :github => 'mattn/mruby-onig-regexp' do
+        # Force the use of the bundled copy of the lib
+        self.bundle_onigmo
+    end
+end
+```
+
 ## Example
 ```ruby
 
