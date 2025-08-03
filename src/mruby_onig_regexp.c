@@ -1183,7 +1183,7 @@ mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
   mrb_define_module_function(mrb, clazz, "clear_global_variables", onig_regexp_clear_global_variables, MRB_ARGS_NONE());
 
   struct RClass* match_data = mrb_define_class(mrb, "OnigMatchData", mrb->object_class);
-  MRB_SET_INSTANCE_TT(clazz, MRB_TT_DATA);
+  MRB_SET_INSTANCE_TT(match_data, MRB_TT_DATA);
   mrb_undef_class_method(mrb, match_data, "new");
 
   // mrb_define_method(mrb, match_data, "==", &match_data_eq);
