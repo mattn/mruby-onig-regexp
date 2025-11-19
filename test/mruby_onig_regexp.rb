@@ -93,6 +93,11 @@ assert("OnigRegexp#source", '15.2.15.7.8') do
   assert_equal str, reg.source
 end
 
+assert("OnigRegexp#names") do
+  reg = OnigRegexp.new("(?<a>a)(?<b>b)(?<c>c)")
+  assert_equal %w[a b c], reg.names
+end
+
 if OnigRegexp.const_defined? :ASCII_RANGE
   assert('OnigRegexp#options (no options)') do
     assert_equal OnigRegexp::ASCII_RANGE | OnigRegexp::POSIX_BRACKET_ALL_RANGE | OnigRegexp::WORD_BOUND_ALL_RANGE, OnigRegexp.new(".*").options
@@ -280,6 +285,12 @@ end
 
 assert('OnigMatchData#regexp') do
   assert_equal '(\w+)(\w)', onig_match_data_example.regexp.source
+end
+
+assert("OnigRegexp#names") do
+  reg = OnigRegexp.new("(?<a>a)(?<b>b)(?<c>c)")
+  m = reg.match("abc")
+  assert_equal %w[a b c], m.names
 end
 
 assert('Invalid regexp') do

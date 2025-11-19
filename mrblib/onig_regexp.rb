@@ -41,6 +41,12 @@ class OnigRegexp
   attr_reader :source
 end
 
+class OnigMatchData
+  def names
+    regexp.names
+  end
+end
+
 class String
   # ISO 15.2.10.5.5
   def =~(a)

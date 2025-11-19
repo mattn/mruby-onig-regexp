@@ -347,6 +347,42 @@ onig_regexp_casefold_p(mrb_state *mrb, mrb_value self) {
   return (onig_get_options(reg) & ONIG_OPTION_IGNORECASE) ? mrb_true_value() : mrb_false_value();
 }
 
+typedef struct {
+  mrb_state* mrb;
+  mrb_value names;
+}foreach_name_data;
+
+static int
+foreach_name(const OnigUChar* c_name, const OnigUChar* c_name_end, int num, int* num_list, OnigRegex reg, void* arg) {
+  foreach_name_data* data = (foreach_name_data*)arg;
+  mrb_value name;
+
+  name = mrb_str_new(data->mrb, (const char*)c_name, c_name_end - c_name);
+  mrb_ary_push(data->mrb, data->names, name);
+
+  return ONIG_NORMAL;
+}
+
+static mrb_value
+onig_regexp_names(mrb_state* mrb, mrb_value self) {
+  OnigRegex reg;
+  foreach_name_data data;
+  int count, result;
+
+  Data_Get_Struct(mrb, self, &mrb_onig_regexp_type, reg);
+
+  count = onig_number_of_names(reg);
+  data.mrb = mrb;
+  data.names = mrb_ary_new_capa(mrb, (mrb_int)count);
+
+  result = onig_foreach_name(reg, foreach_name, &data);
+  if (result != ONIG_NORMAL) {
+    mrb_raisef(mrb, E_REGEXP_ERROR, "onig_foreach_name error");
+  }
+
+  return data.names;
+}
+
 static mrb_value
 onig_regexp_options(mrb_state *mrb, mrb_value self) {
   OnigRegex reg;
@@ -1170,6 +1206,7 @@ mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
   mrb_define_method(mrb, clazz, "match", onig_regexp_match, MRB_ARGS_REQ(1) | MRB_ARGS_OPT(1));
   mrb_define_method(mrb, clazz, "match?", onig_regexp_match_p, MRB_ARGS_REQ(1) | MRB_ARGS_OPT(1));
   mrb_define_method(mrb, clazz, "casefold?", onig_regexp_casefold_p, MRB_ARGS_NONE());
+  mrb_define_method(mrb, clazz, "names", onig_regexp_names, MRB_ARGS_NONE());
 
   mrb_define_method(mrb, clazz, "options", onig_regexp_options, MRB_ARGS_NONE());
   mrb_define_method(mrb, clazz, "inspect", onig_regexp_inspect, MRB_ARGS_NONE());
@@ -1196,7 +1233,6 @@ mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
   mrb_define_method(mrb, match_data, "initialize_copy", &match_data_copy, MRB_ARGS_REQ(1));
   // mrb_define_method(mrb, match_data, "inspect", &match_data_inspect);
   mrb_define_method(mrb, match_data, "length", &match_data_length, MRB_ARGS_NONE());
-  // mrb_define_method(mrb, match_data, "names", &match_data_names);
   mrb_define_method(mrb, match_data, "offset", &match_data_offset, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, match_data, "post_match", &match_data_post_match, MRB_ARGS_NONE());
   mrb_define_method(mrb, match_data, "pre_match", &match_data_pre_match, MRB_ARGS_NONE());
