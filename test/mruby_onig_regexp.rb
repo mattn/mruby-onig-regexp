@@ -93,9 +93,22 @@ assert("OnigRegexp#source", '15.2.15.7.8') do
   assert_equal str, reg.source
 end
 
+assert("OnigRegexp#named_captures") do
+  reg = OnigRegexp.new("(?<a>a)(?<b>b)(?<a>a)")
+  expect = {"a" => [1,3], "b" => [2]};
+  assert_equal expect, reg.named_captures
+
+  reg = OnigRegexp.new("(.)(.)")
+  assert_equal({}, reg.named_captures)
+end
+
+
 assert("OnigRegexp#names") do
   reg = OnigRegexp.new("(?<a>a)(?<b>b)(?<c>c)")
   assert_equal %w[a b c], reg.names
+
+  reg = OnigRegexp.new("(.)(.)")
+  assert_equal [], reg.names
 end
 
 if OnigRegexp.const_defined? :ASCII_RANGE

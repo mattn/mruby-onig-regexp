@@ -353,18 +353,23 @@ typedef struct {
 }foreach_name_data;
 
 static int
-foreach_name(const OnigUChar* c_name, const OnigUChar* c_name_end, int num, int* num_list, OnigRegex reg, void* arg) {
+foreach_name(const OnigUChar* name, const OnigUChar* name_end, int num, int* num_list, OnigRegex reg, void* arg) {
   foreach_name_data* data = (foreach_name_data*)arg;
-  mrb_value name;
+  mrb_state* mrb = data->mrb;
+  mrb_value key, indexes;
 
-  name = mrb_str_new(data->mrb, (const char*)c_name, c_name_end - c_name);
-  mrb_ary_push(data->mrb, data->names, name);
+  key = mrb_str_new(mrb, (const char*)name, name_end - name);
+  indexes = mrb_ary_new_capa(mrb, (mrb_int)num);
+  for(int i = 0; i < num; i++) {
+    mrb_ary_push(mrb, indexes, mrb_int_value(mrb, num_list[i]));
+  }
+  mrb_hash_set(mrb, data->names, key, indexes);
 
   return ONIG_NORMAL;
 }
 
 static mrb_value
-onig_regexp_names(mrb_state* mrb, mrb_value self) {
+onig_regexp_named_captures_common(mrb_state* mrb, mrb_value self) {
   OnigRegex reg;
   foreach_name_data data;
   int count, result;
@@ -373,7 +378,7 @@ onig_regexp_names(mrb_state* mrb, mrb_value self) {
 
   count = onig_number_of_names(reg);
   data.mrb = mrb;
-  data.names = mrb_ary_new_capa(mrb, (mrb_int)count);
+  data.names = mrb_hash_new_capa(mrb, (mrb_int)count);
 
   result = onig_foreach_name(reg, foreach_name, &data);
   if (result != ONIG_NORMAL) {
@@ -381,6 +386,17 @@ onig_regexp_names(mrb_state* mrb, mrb_value self) {
   }
 
   return data.names;
+}
+
+static mrb_value
+onig_regexp_named_captures(mrb_state* mrb, mrb_value self) {
+  return onig_regexp_named_captures_common(mrb, self);
+}
+
+static mrb_value
+onig_regexp_names(mrb_state* mrb, mrb_value self) {
+
+  return mrb_hash_keys(mrb, onig_regexp_named_captures_common(mrb, self));
 }
 
 static mrb_value
@@ -1206,6 +1222,7 @@ mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
   mrb_define_method(mrb, clazz, "match", onig_regexp_match, MRB_ARGS_REQ(1) | MRB_ARGS_OPT(1));
   mrb_define_method(mrb, clazz, "match?", onig_regexp_match_p, MRB_ARGS_REQ(1) | MRB_ARGS_OPT(1));
   mrb_define_method(mrb, clazz, "casefold?", onig_regexp_casefold_p, MRB_ARGS_NONE());
+  mrb_define_method(mrb, clazz, "named_captures", onig_regexp_named_captures, MRB_ARGS_NONE());
   mrb_define_method(mrb, clazz, "names", onig_regexp_names, MRB_ARGS_NONE());
 
   mrb_define_method(mrb, clazz, "options", onig_regexp_options, MRB_ARGS_NONE());
