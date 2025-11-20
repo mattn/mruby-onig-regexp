@@ -350,7 +350,7 @@ onig_regexp_casefold_p(mrb_state *mrb, mrb_value self) {
 typedef struct {
   mrb_state* mrb;
   mrb_value names;
-}foreach_name_data;
+} foreach_name_data;
 
 static int
 foreach_name(const OnigUChar* name, const OnigUChar* name_end, int num, int* num_list, OnigRegex reg, void* arg) {
