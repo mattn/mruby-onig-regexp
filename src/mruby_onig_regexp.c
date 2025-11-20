@@ -395,10 +395,8 @@ onig_regexp_named_captures(mrb_state* mrb, mrb_value self) {
 
 static mrb_value
 onig_regexp_names(mrb_state* mrb, mrb_value self) {
-
   return mrb_hash_keys(mrb, onig_regexp_named_captures_common(mrb, self));
 }
-
 static mrb_value
 onig_regexp_options(mrb_state *mrb, mrb_value self) {
   OnigRegex reg;
