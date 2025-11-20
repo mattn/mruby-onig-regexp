@@ -311,7 +311,7 @@ assert('OnigMatchData#named_captures') do
   assert_equal({"a" => "1"}, m.named_captures)
 
   m = OnigRegexp.new("(?<a>.)(?<b>.)").match("01")
-  assert_equal({a: 0, b: 1}, m.named_captures(symbolize_names: true))
+  assert_equal({a: "0", b: "1"}, m.named_captures(symbolize_names: true))
 end
 
 assert('OnigMatchData#names') do
