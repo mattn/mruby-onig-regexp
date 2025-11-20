@@ -347,6 +347,56 @@ onig_regexp_casefold_p(mrb_state *mrb, mrb_value self) {
   return (onig_get_options(reg) & ONIG_OPTION_IGNORECASE) ? mrb_true_value() : mrb_false_value();
 }
 
+typedef struct {
+  mrb_state* mrb;
+  mrb_value names;
+} foreach_name_data;
+
+static int
+foreach_name(const OnigUChar* name, const OnigUChar* name_end, int num, int* num_list, OnigRegex reg, void* arg) {
+  foreach_name_data* data = (foreach_name_data*)arg;
+  mrb_state* mrb = data->mrb;
+  mrb_value key, indexes;
+
+  key = mrb_str_new(mrb, (const char*)name, name_end - name);
+  indexes = mrb_ary_new_capa(mrb, (mrb_int)num);
+  for(int i = 0; i < num; i++) {
+    mrb_ary_push(mrb, indexes, mrb_int_value(mrb, num_list[i]));
+  }
+  mrb_hash_set(mrb, data->names, key, indexes);
+
+  return ONIG_NORMAL;
+}
+
+static mrb_value
+onig_regexp_named_captures_common(mrb_state* mrb, mrb_value self) {
+  OnigRegex reg;
+  foreach_name_data data;
+  int count, result;
+
+  Data_Get_Struct(mrb, self, &mrb_onig_regexp_type, reg);
+
+  count = onig_number_of_names(reg);
+  data.mrb = mrb;
+  data.names = mrb_hash_new_capa(mrb, (mrb_int)count);
+
+  result = onig_foreach_name(reg, foreach_name, &data);
+  if (result != ONIG_NORMAL) {
+    mrb_raisef(mrb, E_REGEXP_ERROR, "onig_foreach_name error");
+  }
+
+  return data.names;
+}
+
+static mrb_value
+onig_regexp_named_captures(mrb_state* mrb, mrb_value self) {
+  return onig_regexp_named_captures_common(mrb, self);
+}
+
+static mrb_value
+onig_regexp_names(mrb_state* mrb, mrb_value self) {
+  return mrb_hash_keys(mrb, onig_regexp_named_captures_common(mrb, self));
+}
 static mrb_value
 onig_regexp_options(mrb_state *mrb, mrb_value self) {
   OnigRegex reg;
@@ -1170,6 +1220,8 @@ mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
   mrb_define_method(mrb, clazz, "match", onig_regexp_match, MRB_ARGS_REQ(1) | MRB_ARGS_OPT(1));
   mrb_define_method(mrb, clazz, "match?", onig_regexp_match_p, MRB_ARGS_REQ(1) | MRB_ARGS_OPT(1));
   mrb_define_method(mrb, clazz, "casefold?", onig_regexp_casefold_p, MRB_ARGS_NONE());
+  mrb_define_method(mrb, clazz, "named_captures", onig_regexp_named_captures, MRB_ARGS_NONE());
+  mrb_define_method(mrb, clazz, "names", onig_regexp_names, MRB_ARGS_NONE());
 
   mrb_define_method(mrb, clazz, "options", onig_regexp_options, MRB_ARGS_NONE());
   mrb_define_method(mrb, clazz, "inspect", onig_regexp_inspect, MRB_ARGS_NONE());
@@ -1196,7 +1248,6 @@ mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
   mrb_define_method(mrb, match_data, "initialize_copy", &match_data_copy, MRB_ARGS_REQ(1));
   // mrb_define_method(mrb, match_data, "inspect", &match_data_inspect);
   mrb_define_method(mrb, match_data, "length", &match_data_length, MRB_ARGS_NONE());
-  // mrb_define_method(mrb, match_data, "names", &match_data_names);
   mrb_define_method(mrb, match_data, "offset", &match_data_offset, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, match_data, "post_match", &match_data_post_match, MRB_ARGS_NONE());
   mrb_define_method(mrb, match_data, "pre_match", &match_data_pre_match, MRB_ARGS_NONE());

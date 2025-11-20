@@ -93,6 +93,24 @@ assert("OnigRegexp#source", '15.2.15.7.8') do
   assert_equal str, reg.source
 end
 
+assert("OnigRegexp#named_captures") do
+  reg = OnigRegexp.new("(?<a>a)(?<b>b)(?<a>a)")
+  expect = {"a" => [1,3], "b" => [2]}
+  assert_equal expect, reg.named_captures
+
+  reg = OnigRegexp.new("(.)(.)")
+  assert_equal({}, reg.named_captures)
+end
+
+
+assert("OnigRegexp#names") do
+  reg = OnigRegexp.new("(?<a>a)(?<b>b)(?<c>c)")
+  assert_equal %w[a b c], reg.names
+
+  reg = OnigRegexp.new("(.)(.)")
+  assert_equal [], reg.names
+end
+
 if OnigRegexp.const_defined? :ASCII_RANGE
   assert('OnigRegexp#options (no options)') do
     assert_equal OnigRegexp::ASCII_RANGE | OnigRegexp::POSIX_BRACKET_ALL_RANGE | OnigRegexp::WORD_BOUND_ALL_RANGE, OnigRegexp.new(".*").options
@@ -280,6 +298,26 @@ end
 
 assert('OnigMatchData#regexp') do
   assert_equal '(\w+)(\w)', onig_match_data_example.regexp.source
+end
+
+assert('OnigMatchData#named_captures') do
+  m = OnigRegexp.new("(?<a>.)(?<b>.)").match("01")
+  assert_equal({"a" => "0", "b" => "1"}, m.named_captures)
+
+  m = OnigRegexp.new("(?<a>.)(?<b>.)?").match("0")
+  assert_equal({"a" => "0", "b" => nil}, m.named_captures)
+
+  m = OnigRegexp.new("(?<a>.)(?<a>.)").match("01")
+  assert_equal({"a" => "1"}, m.named_captures)
+
+  m = OnigRegexp.new("(?<a>.)(?<b>.)").match("01")
+  assert_equal({a: "0", b: "1"}, m.named_captures(symbolize_names: true))
+end
+
+assert('OnigMatchData#names') do
+  reg = OnigRegexp.new("(?<a>a)(?<b>b)(?<c>c)")
+  m = reg.match("abc")
+  assert_equal %w[a b c], m.names
 end
 
 assert('Invalid regexp') do

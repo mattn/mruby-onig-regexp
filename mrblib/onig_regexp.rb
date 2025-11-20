@@ -41,6 +41,19 @@ class OnigRegexp
   attr_reader :source
 end
 
+class OnigMatchData
+  def named_captures(symbolize_names: false)
+    names.to_h do |name|
+      n = symbolize_names ? name.to_sym : name
+      [n, self[n]]
+    end
+  end
+
+  def names
+    regexp.names
+  end
+end
+
 class String
   # ISO 15.2.10.5.5
   def =~(a)
