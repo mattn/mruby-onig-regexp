@@ -95,7 +95,7 @@ end
 
 assert("OnigRegexp#named_captures") do
   reg = OnigRegexp.new("(?<a>a)(?<b>b)(?<a>a)")
-  expect = {"a" => [1,3], "b" => [2]};
+  expect = {"a" => [1,3], "b" => [2]}
   assert_equal expect, reg.named_captures
 
   reg = OnigRegexp.new("(.)(.)")
