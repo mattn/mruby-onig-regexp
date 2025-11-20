@@ -300,7 +300,21 @@ assert('OnigMatchData#regexp') do
   assert_equal '(\w+)(\w)', onig_match_data_example.regexp.source
 end
 
-assert("OnigRegexp#names") do
+assert('OnigMatchData#named_captures') do
+  m = OnigRegexp.match("(?<a>.)(?<b>.)").match("01")
+  assert_equal({"a" => "0", "b" => "1"}, m.named_captures)
+
+  m = OnigRegexp.match("(?<a>.)(?<b>.)?").match("0")
+  assert_equal({"a" => "0", "b" => nil}, m.named_captures)
+
+  m = OnigRegexp.match("(?<a>.)(?<a>.)").match("01")
+  assert_equal({"a" => "1"}, m.named_captures)
+
+  m = OnigRegexp.match("(?<a>.)(?<b>.)").match("01")
+  assert_equal({a: 0, b: 1}, m.named_captures(symbolize_names: true))
+end
+
+assert('OnigMatchData#names') do
   reg = OnigRegexp.new("(?<a>a)(?<b>b)(?<c>c)")
   m = reg.match("abc")
   assert_equal %w[a b c], m.names
