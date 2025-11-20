@@ -301,16 +301,16 @@ assert('OnigMatchData#regexp') do
 end
 
 assert('OnigMatchData#named_captures') do
-  m = OnigRegexp.match("(?<a>.)(?<b>.)").match("01")
+  m = OnigRegexp.new("(?<a>.)(?<b>.)").match("01")
   assert_equal({"a" => "0", "b" => "1"}, m.named_captures)
 
-  m = OnigRegexp.match("(?<a>.)(?<b>.)?").match("0")
+  m = OnigRegexp.new("(?<a>.)(?<b>.)?").match("0")
   assert_equal({"a" => "0", "b" => nil}, m.named_captures)
 
   m = OnigRegexp.new("(?<a>.)(?<a>.)").match("01")
   assert_equal({"a" => "1"}, m.named_captures)
 
-  m = OnigRegexp.match("(?<a>.)(?<b>.)").match("01")
+  m = OnigRegexp.new("(?<a>.)(?<b>.)").match("01")
   assert_equal({a: 0, b: 1}, m.named_captures(symbolize_names: true))
 end
 
