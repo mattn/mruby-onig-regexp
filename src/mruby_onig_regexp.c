@@ -52,12 +52,13 @@ THE SOFTWARE.
 #endif
 
 // Global symbols for symbols with special characters
-static mrb_sym sym_dollar_tilde;      // $~
-static mrb_sym sym_dollar_ampersand;  // $&
-static mrb_sym sym_dollar_backtick;   // $`
-static mrb_sym sym_dollar_quote;      // $'
-static mrb_sym sym_dollar_plus;       // $+
-static mrb_sym sym_dollar_semicolon;  // $;
+static mrb_sym sym_dollar_tilde;       // $~
+static mrb_sym sym_dollar_ampersand;   // $&
+static mrb_sym sym_dollar_backtick;    // $`
+static mrb_sym sym_dollar_quote;       // $'
+static mrb_sym sym_dollar_plus;        // $+
+static mrb_sym sym_dollar_semicolon;   // $;
+static mrb_sym sym_dollar_numbers[10]; // $0 to $9
 
 static const char utf8len_codepage[256] =
 {
@@ -215,16 +216,16 @@ onig_match_common(mrb_state* mrb, OnigRegex reg, mrb_value match_value, mrb_valu
 
     // $1 to $9
     int idx = 1;
+    // Set $1 to $9 based on match->num_regs
     int const idx_max = match->num_regs > 10? 10 : match->num_regs;
-    for(; idx < idx_max; ++idx) {
-      char const n[] = { '$', '0' + idx };
-      mrb_gv_set(mrb, mrb_intern(mrb, n, 2),
-                 mrb_funcall(mrb, match_value, "[]", 1, mrb_fixnum_value(idx)));
-    }
 
-    for(; idx < 10; ++idx) {
-      char const n[] = { '$', '0' + idx };
-      mrb_gv_remove(mrb, mrb_intern(mrb, n, 2));
+    // Set available capture groups ($1 to $9)
+    for (; idx < 10; ++idx) {
+      if (idx_max > idx) {
+        mrb_gv_set(mrb, sym_dollar_numbers[idx], mrb_funcall(mrb, match_value, "[]", 1, mrb_fixnum_value(idx)));
+      } else {
+        mrb_gv_remove(mrb, sym_dollar_numbers[idx]);
+      }
     }
   }
 
@@ -1105,10 +1106,10 @@ onig_regexp_clear_global_variables(mrb_state* mrb, mrb_value self) {
   mrb_gv_remove(mrb, sym_dollar_quote);
   mrb_gv_remove(mrb, sym_dollar_plus);
 
+  // Remove $1 to $9 global variables
   int idx;
-  for(idx = 1; idx < 10; ++idx) {
-    char const n[] = { '$', '0' + idx };
-    mrb_gv_remove(mrb, mrb_intern(mrb, n, 2));
+  for (idx = 1; idx < 10; ++idx) {
+    mrb_gv_remove(mrb, sym_dollar_numbers[idx]);
   }
 
   return self;
@@ -1192,6 +1193,12 @@ mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
   sym_dollar_quote = mrb_intern_lit(mrb, "$'");
   sym_dollar_plus = mrb_intern_lit(mrb, "$+");
   sym_dollar_semicolon = mrb_intern_lit(mrb, "$;");
+
+  // Initialize $0 to $9 symbols
+  for (int idx = 0; idx < 10; ++idx) {
+    char const n[] = { '$', '0' + idx };
+    sym_dollar_numbers[idx] = mrb_intern(mrb, n, 2);
+  }
 
   clazz = mrb_define_class(mrb, "OnigRegexp", mrb->object_class);
   MRB_SET_INSTANCE_TT(clazz, MRB_TT_DATA);
