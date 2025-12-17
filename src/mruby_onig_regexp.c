@@ -51,6 +51,14 @@ THE SOFTWARE.
 #define mrb_args_int int
 #endif
 
+// Global symbols for symbols with special characters
+static mrb_sym sym_dollar_tilde;      // $~
+static mrb_sym sym_dollar_ampersand;  // $&
+static mrb_sym sym_dollar_backtick;   // $`
+static mrb_sym sym_dollar_quote;      // $'
+static mrb_sym sym_dollar_plus;       // $+
+static mrb_sym sym_dollar_semicolon;  // $;
+
 static const char utf8len_codepage[256] =
 {
   1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
@@ -194,15 +202,15 @@ onig_match_common(mrb_state* mrb, OnigRegex reg, mrb_value match_value, mrb_valu
   if (mrb_class_get(mrb, "Regexp") == (struct RClass*)cls &&
     mrb_bool(mrb_obj_iv_get(mrb, (struct RObject*)cls, MRB_IVSYM(set_global_variables))))
   {
-    mrb_gv_set(mrb, mrb_intern_lit(mrb, "$~"),
+    mrb_gv_set(mrb, sym_dollar_tilde,
                MISMATCH_NIL_OR(match_value));
-    mrb_gv_set(mrb, mrb_intern_lit(mrb, "$&"),
+    mrb_gv_set(mrb, sym_dollar_ampersand,
                MISMATCH_NIL_OR(mrb_funcall(mrb, match_value, "[]", 1, mrb_fixnum_value(0))));
-    mrb_gv_set(mrb, mrb_intern_lit(mrb, "$`"),
+    mrb_gv_set(mrb, sym_dollar_backtick,
                MISMATCH_NIL_OR(mrb_funcall(mrb, match_value, "pre_match", 0)));
-    mrb_gv_set(mrb, mrb_intern_lit(mrb, "$'"),
+    mrb_gv_set(mrb, sym_dollar_quote,
                MISMATCH_NIL_OR(mrb_funcall(mrb, match_value, "post_match", 0)));
-    mrb_gv_set(mrb, mrb_intern_lit(mrb, "$+"),
+    mrb_gv_set(mrb, sym_dollar_plus,
                MISMATCH_NIL_OR(mrb_funcall(mrb, match_value, "[]", 1, mrb_fixnum_value(match->num_regs - 1))));
 
     // $1 to $9
@@ -953,7 +961,7 @@ string_split(mrb_state* mrb, mrb_value self) {
   mrb_bool lim_p = !(argc == 2 && 0 < limit);
 
   if(mrb_nil_p(pattern)) { // check $; global variable
-    pattern = mrb_gv_get(mrb, mrb_intern_lit(mrb, "$;"));
+    pattern = mrb_gv_get(mrb, sym_dollar_semicolon);
     if (mrb_nil_p(pattern)) {
       pattern = mrb_str_new_lit(mrb, " ");
     } else if (!mrb_string_p(pattern) && !ONIG_REGEXP_P(pattern)) {
@@ -1091,11 +1099,11 @@ string_sub(mrb_state* mrb, mrb_value self) {
 
 static mrb_value
 onig_regexp_clear_global_variables(mrb_state* mrb, mrb_value self) {
-  mrb_gv_remove(mrb, mrb_intern_lit(mrb, "$~"));
-  mrb_gv_remove(mrb, mrb_intern_lit(mrb, "$&"));
-  mrb_gv_remove(mrb, mrb_intern_lit(mrb, "$`"));
-  mrb_gv_remove(mrb, mrb_intern_lit(mrb, "$'"));
-  mrb_gv_remove(mrb, mrb_intern_lit(mrb, "$+"));
+  mrb_gv_remove(mrb, sym_dollar_tilde);
+  mrb_gv_remove(mrb, sym_dollar_ampersand);
+  mrb_gv_remove(mrb, sym_dollar_backtick);
+  mrb_gv_remove(mrb, sym_dollar_quote);
+  mrb_gv_remove(mrb, sym_dollar_plus);
 
   int idx;
   for(idx = 1; idx < 10; ++idx) {
@@ -1176,6 +1184,14 @@ onig_regexp_escape(mrb_state* mrb, mrb_value self) {
 void
 mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
   struct RClass *clazz;
+
+  // Initialize global symbols with special characters
+  sym_dollar_tilde = mrb_intern_lit(mrb, "$~");
+  sym_dollar_ampersand = mrb_intern_lit(mrb, "$&");
+  sym_dollar_backtick = mrb_intern_lit(mrb, "$`");
+  sym_dollar_quote = mrb_intern_lit(mrb, "$'");
+  sym_dollar_plus = mrb_intern_lit(mrb, "$+");
+  sym_dollar_semicolon = mrb_intern_lit(mrb, "$;");
 
   clazz = mrb_define_class(mrb, "OnigRegexp", mrb->object_class);
   MRB_SET_INSTANCE_TT(clazz, MRB_TT_DATA);
