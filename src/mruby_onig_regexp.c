@@ -206,13 +206,13 @@ onig_match_common(mrb_state* mrb, OnigRegex reg, mrb_value match_value, mrb_valu
     mrb_gv_set(mrb, sym_dollar_tilde,
                MISMATCH_NIL_OR(match_value));
     mrb_gv_set(mrb, sym_dollar_ampersand,
-               MISMATCH_NIL_OR(mrb_funcall(mrb, match_value, "[]", 1, mrb_fixnum_value(0))));
+               MISMATCH_NIL_OR(mrb_funcall_id(mrb, match_value, MRB_OPSYM(aref), 1, mrb_fixnum_value(0))));
     mrb_gv_set(mrb, sym_dollar_backtick,
-               MISMATCH_NIL_OR(mrb_funcall(mrb, match_value, "pre_match", 0)));
+               MISMATCH_NIL_OR(mrb_funcall_id(mrb, match_value, MRB_SYM(pre_match), 0)));
     mrb_gv_set(mrb, sym_dollar_quote,
-               MISMATCH_NIL_OR(mrb_funcall(mrb, match_value, "post_match", 0)));
+               MISMATCH_NIL_OR(mrb_funcall_id(mrb, match_value, MRB_SYM(post_match), 0)));
     mrb_gv_set(mrb, sym_dollar_plus,
-               MISMATCH_NIL_OR(mrb_funcall(mrb, match_value, "[]", 1, mrb_fixnum_value(match->num_regs - 1))));
+               MISMATCH_NIL_OR(mrb_funcall_id(mrb, match_value, MRB_OPSYM(aref), 1, mrb_fixnum_value(match->num_regs - 1))));
 
     // $1 to $9
     int idx = 1;
@@ -222,7 +222,7 @@ onig_match_common(mrb_state* mrb, OnigRegex reg, mrb_value match_value, mrb_valu
     // Set available capture groups ($1 to $9)
     for (; idx < 10; ++idx) {
       if (idx_max > idx) {
-        mrb_gv_set(mrb, sym_dollar_numbers[idx], mrb_funcall(mrb, match_value, "[]", 1, mrb_fixnum_value(idx)));
+        mrb_gv_set(mrb, sym_dollar_numbers[idx], mrb_funcall_id(mrb, match_value, MRB_OPSYM(aref), 1, mrb_fixnum_value(idx)));
       } else {
         mrb_gv_remove(mrb, sym_dollar_numbers[idx]);
       }
@@ -833,7 +833,7 @@ string_gsub(mrb_state* mrb, mrb_value self) {
   }
 
   if(argc == 1 && mrb_nil_p(blk)) {
-    return mrb_funcall(mrb, self, "to_enum", 2, mrb_symbol_value(MRB_SYM(onig_regexp_gsub)), match_expr);
+    return mrb_funcall_id(mrb, self, MRB_SYM(to_enum), 2, mrb_symbol_value(MRB_SYM(onig_regexp_gsub)), match_expr);
   }
 
   if(!mrb_nil_p(blk) && !mrb_nil_p(replace_expr)) {
@@ -975,9 +975,9 @@ string_split(mrb_state* mrb, mrb_value self) {
     if(!mrb_nil_p(pattern)) { pattern = mrb_string_type(mrb, pattern); }
     if(mrb_string_p(pattern) && RSTRING_LEN(pattern) == 0) {
       /* Special case - split into chars */
-      pattern = mrb_funcall(mrb, mrb_obj_value(mrb_class_get(mrb, "OnigRegexp")), "new", 1, pattern);
+      pattern = mrb_funcall_id(mrb, mrb_obj_value(mrb_class_get_id(mrb, MRB_SYM(OnigRegexp))), MRB_SYM(new), 1, pattern);
     } else {
-      return mrb_funcall(mrb, self, "string_split", argc, pattern, mrb_fixnum_value(limit));
+      return mrb_funcall_id(mrb, self, MRB_SYM(string_split), argc, pattern, mrb_fixnum_value(limit));
     }
   }
 
