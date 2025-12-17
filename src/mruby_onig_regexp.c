@@ -175,7 +175,7 @@ create_onig_region(mrb_state* mrb, mrb_value const str, mrb_value rex) {
   mrb_assert(mrb_string_p(str));
   mrb_assert(mrb_type(rex) == MRB_TT_DATA && DATA_TYPE(rex) == &mrb_onig_regexp_type);
   mrb_value const c = mrb_obj_value(mrb_data_object_alloc(
-      mrb, mrb_class_get(mrb, "OnigMatchData"), onig_region_new(), &mrb_onig_region_type));
+      mrb, mrb_class_get_id(mrb, MRB_SYM(OnigMatchData)), onig_region_new(), &mrb_onig_region_type));
   mrb_iv_set(mrb, c, MRB_SYM(string), mrb_str_dup(mrb, str));
   mrb_iv_set(mrb, c, MRB_SYM(regexp), rex);
   return c;
@@ -197,10 +197,10 @@ onig_match_common(mrb_state* mrb, OnigRegex reg, mrb_value match_value, mrb_valu
     mrb_raise(mrb, E_REGEXP_ERROR, err);
   }
 
-  struct RObject* const cls = (struct RObject*)mrb_class_get(mrb, "OnigRegexp");
+  struct RObject* const cls = (struct RObject*)mrb_class_get_id(mrb, MRB_SYM(OnigRegexp));
   mrb_obj_iv_set(mrb, cls, MRB_IVSYM(last_match), MISMATCH_NIL_OR(match_value));
 
-  if (mrb_class_get(mrb, "Regexp") == (struct RClass*)cls &&
+  if (mrb_class_get_id(mrb, MRB_SYM(Regexp)) == (struct RClass*)cls &&
     mrb_bool(mrb_obj_iv_get(mrb, (struct RObject*)cls, MRB_IVSYM(set_global_variables))))
   {
     mrb_gv_set(mrb, sym_dollar_tilde,
@@ -333,7 +333,7 @@ onig_regexp_equal(mrb_state *mrb, mrb_value self) {
   if (mrb_nil_p(other)) {
     return mrb_false_value();
   }
-  if (!mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "OnigRegexp"))) {
+  if (!mrb_obj_is_kind_of(mrb, other, mrb_class_get_id(mrb, MRB_SYM(OnigRegexp)))) {
     return mrb_false_value();
   }
   Data_Get_Struct(mrb, self, &mrb_onig_regexp_type, self_reg);
@@ -1118,7 +1118,7 @@ onig_regexp_clear_global_variables(mrb_state* mrb, mrb_value self) {
 static mrb_value
 onig_regexp_does_set_global_variables(mrb_state* mrb, mrb_value self) {
   (void)self;
-  return mrb_obj_iv_get(mrb, (struct RObject*)mrb_class_get(mrb, "OnigRegexp"),
+  return mrb_obj_iv_get(mrb, (struct RObject*)mrb_class_get_id(mrb, MRB_SYM(OnigRegexp)),
                         MRB_IVSYM(set_global_variables));
 }
 static mrb_value
@@ -1126,7 +1126,7 @@ onig_regexp_set_set_global_variables(mrb_state* mrb, mrb_value self) {
   mrb_value arg;
   mrb_get_args(mrb, "o", &arg);
   mrb_value const ret = mrb_bool_value(mrb_bool(arg));
-  mrb_obj_iv_set(mrb, (struct RObject*)mrb_class_get(mrb, "OnigRegexp"),
+  mrb_obj_iv_set(mrb, (struct RObject*)mrb_class_get_id(mrb, MRB_SYM(OnigRegexp)),
                  MRB_IVSYM(set_global_variables), ret);
   onig_regexp_clear_global_variables(mrb, self);
   return ret;
