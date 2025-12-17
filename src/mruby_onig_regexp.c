@@ -72,6 +72,10 @@ static const char utf8len_codepage[256] =
   3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,1,1,1,1,1,1,1,1,1,1,1,
 };
 
+static mrb_value match_data_to_a(mrb_state* mrb, mrb_value self);
+static mrb_value match_data_post_match(mrb_state* mrb, mrb_value self);
+static mrb_value match_data_pre_match(mrb_state* mrb, mrb_value self);
+
 static mrb_int
 utf8len(const char* p, const char* e)
 {
@@ -206,13 +210,13 @@ onig_match_common(mrb_state* mrb, OnigRegex reg, mrb_value match_value, mrb_valu
     mrb_gv_set(mrb, sym_dollar_tilde,
                MISMATCH_NIL_OR(match_value));
     mrb_gv_set(mrb, sym_dollar_ampersand,
-               MISMATCH_NIL_OR(mrb_funcall_id(mrb, match_value, MRB_OPSYM(aref), 1, mrb_fixnum_value(0))));
+               MISMATCH_NIL_OR(mrb_ary_entry(match_data_to_a(mrb, match_value), 0)));
     mrb_gv_set(mrb, sym_dollar_backtick,
-               MISMATCH_NIL_OR(mrb_funcall_id(mrb, match_value, MRB_SYM(pre_match), 0)));
+               MISMATCH_NIL_OR(match_data_pre_match(mrb, match_value)));
     mrb_gv_set(mrb, sym_dollar_quote,
-               MISMATCH_NIL_OR(mrb_funcall_id(mrb, match_value, MRB_SYM(post_match), 0)));
+               MISMATCH_NIL_OR(match_data_post_match(mrb, match_value)));
     mrb_gv_set(mrb, sym_dollar_plus,
-               MISMATCH_NIL_OR(mrb_funcall_id(mrb, match_value, MRB_OPSYM(aref), 1, mrb_fixnum_value(match->num_regs - 1))));
+               MISMATCH_NIL_OR(mrb_ary_entry(match_data_to_a(mrb, match_value), match->num_regs - 1)));
 
     // $1 to $9
     int idx = 1;
