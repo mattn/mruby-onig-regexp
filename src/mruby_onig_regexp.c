@@ -33,6 +33,7 @@ THE SOFTWARE.
 #include <mruby/string.h>
 #include <mruby/data.h>
 #include <mruby/variable.h>
+#include <mruby/presym.h>
 #ifdef _MSC_VER
 #define ONIG_EXTERN extern
 #endif
@@ -152,7 +153,7 @@ onig_regexp_initialize(mrb_state *mrb, mrb_value self) {
     mrb_raisef(mrb, E_REGEXP_ERROR, "'%S' is an invalid regular expression because %S.",
                str, mrb_str_new_cstr(mrb, err));
   }
-  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@source"), str);
+  mrb_iv_set(mrb, self, MRB_IVSYM(source), str);
 
   DATA_PTR(self) = reg;
   DATA_TYPE(self) = &mrb_onig_regexp_type;
@@ -166,8 +167,8 @@ create_onig_region(mrb_state* mrb, mrb_value const str, mrb_value rex) {
   mrb_assert(mrb_type(rex) == MRB_TT_DATA && DATA_TYPE(rex) == &mrb_onig_regexp_type);
   mrb_value const c = mrb_obj_value(mrb_data_object_alloc(
       mrb, mrb_class_get(mrb, "OnigMatchData"), onig_region_new(), &mrb_onig_region_type));
-  mrb_iv_set(mrb, c, mrb_intern_lit(mrb, "string"), mrb_str_dup(mrb, str));
-  mrb_iv_set(mrb, c, mrb_intern_lit(mrb, "regexp"), rex);
+  mrb_iv_set(mrb, c, MRB_SYM(string), mrb_str_dup(mrb, str));
+  mrb_iv_set(mrb, c, MRB_SYM(regexp), rex);
   return c;
 }
 
@@ -188,10 +189,10 @@ onig_match_common(mrb_state* mrb, OnigRegex reg, mrb_value match_value, mrb_valu
   }
 
   struct RObject* const cls = (struct RObject*)mrb_class_get(mrb, "OnigRegexp");
-  mrb_obj_iv_set(mrb, cls, mrb_intern_lit(mrb, "@last_match"), MISMATCH_NIL_OR(match_value));
+  mrb_obj_iv_set(mrb, cls, MRB_IVSYM(last_match), MISMATCH_NIL_OR(match_value));
 
   if (mrb_class_get(mrb, "Regexp") == (struct RClass*)cls &&
-    mrb_bool(mrb_obj_iv_get(mrb, (struct RObject*)cls, mrb_intern_lit(mrb, "@set_global_variables"))))
+    mrb_bool(mrb_obj_iv_get(mrb, (struct RObject*)cls, MRB_IVSYM(set_global_variables))))
   {
     mrb_gv_set(mrb, mrb_intern_lit(mrb, "$~"),
                MISMATCH_NIL_OR(match_value));
@@ -335,7 +336,7 @@ onig_regexp_equal(mrb_state *mrb, mrb_value self) {
   if (onig_get_options(self_reg) != onig_get_options(other_reg)){
       return mrb_false_value();
   }
-  return mrb_str_equal(mrb, mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@source")), mrb_iv_get(mrb, other, mrb_intern_lit(mrb, "@source"))) ?
+  return mrb_str_equal(mrb, mrb_iv_get(mrb, self, MRB_IVSYM(source)), mrb_iv_get(mrb, other, MRB_IVSYM(source))) ?
       mrb_true_value() : mrb_false_value();
 }
 
@@ -463,7 +464,7 @@ onig_regexp_inspect(mrb_state *mrb, mrb_value self) {
   OnigRegex reg;
   Data_Get_Struct(mrb, self, &mrb_onig_regexp_type, reg);
   mrb_value str = mrb_str_new_lit(mrb, "/");
-  mrb_value src = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@source"));
+  mrb_value src = mrb_iv_get(mrb, self, MRB_IVSYM(source));
   regexp_expr_str(mrb, str, (const char *)RSTRING_PTR(src), RSTRING_LEN(src));
   mrb_str_cat_lit(mrb, str, "/");
   char opts[4];
@@ -488,7 +489,7 @@ onig_regexp_to_s(mrb_state *mrb, mrb_value self) {
   OnigRegex reg;
   Data_Get_Struct(mrb, self, &mrb_onig_regexp_type, reg);
   options = onig_get_options(reg);
-  mrb_value src = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@source"));
+  mrb_value src = mrb_iv_get(mrb, self, MRB_IVSYM(source));
   ptr = RSTRING_PTR(src);
   len = RSTRING_LEN(src);
 
@@ -574,7 +575,7 @@ match_data_actual_index(mrb_state* mrb, mrb_value self, mrb_value idx_value) {
   } else { mrb_assert(FALSE); }
   mrb_assert(name && name_end);
 
-  mrb_value const regexp = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "regexp"));
+  mrb_value const regexp = mrb_iv_get(mrb, self, MRB_SYM(regexp));
   mrb_assert(!mrb_nil_p(regexp));
   mrb_assert(DATA_TYPE(regexp) == &mrb_onig_regexp_type);
   mrb_assert(DATA_TYPE(self) == &mrb_onig_region_type);
@@ -607,7 +608,7 @@ match_data_index(mrb_state* mrb, mrb_value self) {
     }
   }
 
-  return mrb_funcall_argv(mrb, src, mrb_intern_lit(mrb, "[]"), argc, argv);
+  return mrb_funcall_argv(mrb, src, MRB_OPSYM(aref), argc, argv);
 }
 
 #define match_data_check_index(idx) \
@@ -659,8 +660,8 @@ match_data_copy(mrb_state* mrb, mrb_value self) {
 
   DATA_PTR(self) = dst;
   DATA_TYPE(self) = &mrb_onig_region_type;
-  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "string"), mrb_iv_get(mrb, src_val, mrb_intern_lit(mrb, "string")));
-  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "regexp"), mrb_iv_get(mrb, src_val, mrb_intern_lit(mrb, "regexp")));
+  mrb_iv_set(mrb, self, MRB_SYM(string), mrb_iv_get(mrb, src_val, MRB_SYM(string)));
+  mrb_iv_set(mrb, self, MRB_SYM(regexp), mrb_iv_get(mrb, src_val, MRB_SYM(regexp)));
   return self;
 }
 
@@ -693,7 +694,7 @@ static mrb_value
 match_data_post_match(mrb_state* mrb, mrb_value self) {
   OnigRegion* reg;
   Data_Get_Struct(mrb, self, &mrb_onig_region_type, reg);
-  mrb_value str = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "string"));
+  mrb_value str = mrb_iv_get(mrb, self, MRB_SYM(string));
   return str_substr(mrb, str, reg->end[0], RSTRING_LEN(str) - reg->end[0]);
 }
 
@@ -702,30 +703,30 @@ static mrb_value
 match_data_pre_match(mrb_state* mrb, mrb_value self) {
   OnigRegion* reg;
   Data_Get_Struct(mrb, self, &mrb_onig_region_type, reg);
-  mrb_value str = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "string"));
+  mrb_value str = mrb_iv_get(mrb, self, MRB_SYM(string));
   return str_substr(mrb, str, 0, reg->beg[0]);
 }
 
 // ISO 15.2.16.3.11
 static mrb_value
 match_data_string(mrb_state* mrb, mrb_value self) {
-  return mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "string"));
+  return mrb_iv_get(mrb, self, MRB_SYM(string));
 }
 
 static mrb_value
 match_data_regexp(mrb_state* mrb, mrb_value self) {
-  return mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "regexp"));
+  return mrb_iv_get(mrb, self, MRB_SYM(regexp));
 }
 
 // ISO 15.2.16.3.12
 static mrb_value
 match_data_to_a(mrb_state* mrb, mrb_value self) {
-  mrb_value cache = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "cache"));
+  mrb_value cache = mrb_iv_get(mrb, self, MRB_SYM(cache));
   if(!mrb_nil_p(cache)) {
     return cache;
   }
 
-  mrb_value str = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "string"));
+  mrb_value str = mrb_iv_get(mrb, self, MRB_SYM(string));
   OnigRegion* reg;
   Data_Get_Struct(mrb, self, &mrb_onig_region_type, reg);
 
@@ -745,7 +746,7 @@ match_data_to_a(mrb_state* mrb, mrb_value self) {
 // ISO 15.2.16.3.13
 static mrb_value
 match_data_to_s(mrb_state* mrb, mrb_value self) {
-  mrb_value str = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "string"));
+  mrb_value str = mrb_iv_get(mrb, self, MRB_SYM(string));
   OnigRegion* reg;
   Data_Get_Struct(mrb, self, &mrb_onig_region_type, reg);
   return str_substr(mrb, str, reg->beg[0], reg->end[0] - reg->beg[0]);
@@ -819,11 +820,11 @@ string_gsub(mrb_state* mrb, mrb_value self) {
 
   if(!ONIG_REGEXP_P(match_expr)) {
     mrb_value argv[] = { match_expr, replace_expr };
-    return mrb_funcall_with_block(mrb, self, mrb_intern_lit(mrb, "string_gsub"), argc, argv, blk);
+    return mrb_funcall_with_block(mrb, self, MRB_SYM(string_gsub), argc, argv, blk);
   }
 
   if(argc == 1 && mrb_nil_p(blk)) {
-    return mrb_funcall(mrb, self, "to_enum", 2, mrb_symbol_value(mrb_intern_lit(mrb, "onig_regexp_gsub")), match_expr);
+    return mrb_funcall(mrb, self, "to_enum", 2, mrb_symbol_value(MRB_SYM(onig_regexp_gsub)), match_expr);
   }
 
   if(!mrb_nil_p(blk) && !mrb_nil_p(replace_expr)) {
@@ -884,7 +885,7 @@ string_scan(mrb_state* mrb, mrb_value self) {
   mrb_get_args(mrb, "&o", &blk, &match_expr);
 
   if(!ONIG_REGEXP_P(match_expr)) {
-    return mrb_funcall_with_block(mrb, self, mrb_intern_lit(mrb, "string_scan"),
+    return mrb_funcall_with_block(mrb, self, MRB_SYM(string_scan),
                                   1, &match_expr, blk);
   }
 
@@ -1047,7 +1048,7 @@ string_sub(mrb_state* mrb, mrb_value self) {
 
   if(!ONIG_REGEXP_P(match_expr)) {
     mrb_value argv[] = { match_expr, replace_expr };
-    return mrb_funcall_with_block(mrb, self, mrb_intern_lit(mrb, "string_sub"), argc, argv, blk);
+    return mrb_funcall_with_block(mrb, self, MRB_SYM(string_sub), argc, argv, blk);
   }
 
   if(argc == 1 && mrb_nil_p(blk)) {
@@ -1109,7 +1110,7 @@ static mrb_value
 onig_regexp_does_set_global_variables(mrb_state* mrb, mrb_value self) {
   (void)self;
   return mrb_obj_iv_get(mrb, (struct RObject*)mrb_class_get(mrb, "OnigRegexp"),
-                        mrb_intern_lit(mrb, "@set_global_variables"));
+                        MRB_IVSYM(set_global_variables));
 }
 static mrb_value
 onig_regexp_set_set_global_variables(mrb_state* mrb, mrb_value self) {
@@ -1117,7 +1118,7 @@ onig_regexp_set_set_global_variables(mrb_state* mrb, mrb_value self) {
   mrb_get_args(mrb, "o", &arg);
   mrb_value const ret = mrb_bool_value(mrb_bool(arg));
   mrb_obj_iv_set(mrb, (struct RObject*)mrb_class_get(mrb, "OnigRegexp"),
-                 mrb_intern_lit(mrb, "@set_global_variables"), ret);
+                 MRB_IVSYM(set_global_variables), ret);
   onig_regexp_clear_global_variables(mrb, self);
   return ret;
 }
@@ -1180,7 +1181,7 @@ mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
   MRB_SET_INSTANCE_TT(clazz, MRB_TT_DATA);
 
   // enable global variables setting in onig_match_common by default
-  mrb_obj_iv_set(mrb, (struct RObject*)clazz, mrb_intern_lit(mrb, "@set_global_variables"), mrb_true_value());
+  mrb_obj_iv_set(mrb, (struct RObject*)clazz, MRB_IVSYM(set_global_variables), mrb_true_value());
 
   mrb_define_const(mrb, clazz, "IGNORECASE", mrb_fixnum_value(ONIG_OPTION_IGNORECASE));
   mrb_define_const(mrb, clazz, "EXTENDED", mrb_fixnum_value(ONIG_OPTION_EXTEND));
