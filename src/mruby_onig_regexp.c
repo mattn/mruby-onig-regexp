@@ -770,6 +770,8 @@ match_data_to_a(mrb_state* mrb, mrb_value self) {
     }
     mrb_gc_arena_restore(mrb, ai);
   }
+
+  mrb_iv_set(mrb, self, MRB_SYM(cache), ret);
   return ret;
 }
 
