@@ -185,6 +185,46 @@ create_onig_region(mrb_state* mrb, mrb_value const str, mrb_value rex) {
   return c;
 }
 
+#define MATCH_VALUE_NIL_OR(v) (mrb_nil_p(match_value) ? mrb_nil_value() : (v))
+
+static void
+onig_gv_set(mrb_state* mrb, mrb_value match_value) {
+
+  mrb_gv_set(mrb, sym_dollar_tilde, match_value);
+  mrb_gv_set(mrb, sym_dollar_ampersand,
+             MATCH_VALUE_NIL_OR(mrb_ary_entry(match_data_to_a(mrb, match_value), 0)));
+  mrb_gv_set(mrb, sym_dollar_backtick,
+             MATCH_VALUE_NIL_OR(match_data_pre_match(mrb, match_value)));
+  mrb_gv_set(mrb, sym_dollar_quote,
+             MATCH_VALUE_NIL_OR(match_data_post_match(mrb, match_value)));
+  mrb_gv_set(mrb, sym_dollar_plus,
+             MATCH_VALUE_NIL_OR(mrb_ary_entry(match_data_to_a(mrb, match_value), -1)));
+
+  // $1 to $9
+  int idx = 1;
+  if (mrb_nil_p(match_value)) {
+    for (; idx < 10; ++idx) {
+      mrb_gv_remove(mrb, sym_dollar_numbers[idx]);
+    }
+  } else {
+    OnigRegion* const match = (OnigRegion*)DATA_PTR(match_value);
+
+    // Set $1 to $9 based on match->num_regs
+    int const idx_max = match->num_regs > 10? 10 : match->num_regs;
+
+    // Set available capture groups ($1 to $9)
+    for (; idx < 10; ++idx) {
+      if (idx_max > idx) {
+        mrb_gv_set(mrb, sym_dollar_numbers[idx], mrb_funcall_id(mrb, match_value, MRB_OPSYM(aref), 1, mrb_fixnum_value(idx)));
+      } else {
+        mrb_gv_remove(mrb, sym_dollar_numbers[idx]);
+      }
+    }
+  }
+
+
+}
+
 #define MISMATCH_NIL_OR(v) (result == ONIG_MISMATCH ? mrb_nil_value() : (v))
 
 static int
@@ -207,30 +247,7 @@ onig_match_common(mrb_state* mrb, OnigRegex reg, mrb_value match_value, mrb_valu
   if (mrb_class_get_id(mrb, MRB_SYM(Regexp)) == (struct RClass*)cls &&
     mrb_bool(mrb_obj_iv_get(mrb, (struct RObject*)cls, MRB_IVSYM(set_global_variables))))
   {
-    mrb_gv_set(mrb, sym_dollar_tilde,
-               MISMATCH_NIL_OR(match_value));
-    mrb_gv_set(mrb, sym_dollar_ampersand,
-               MISMATCH_NIL_OR(mrb_ary_entry(match_data_to_a(mrb, match_value), 0)));
-    mrb_gv_set(mrb, sym_dollar_backtick,
-               MISMATCH_NIL_OR(match_data_pre_match(mrb, match_value)));
-    mrb_gv_set(mrb, sym_dollar_quote,
-               MISMATCH_NIL_OR(match_data_post_match(mrb, match_value)));
-    mrb_gv_set(mrb, sym_dollar_plus,
-               MISMATCH_NIL_OR(mrb_ary_entry(match_data_to_a(mrb, match_value), match->num_regs - 1)));
-
-    // $1 to $9
-    int idx = 1;
-    // Set $1 to $9 based on match->num_regs
-    int const idx_max = match->num_regs > 10? 10 : match->num_regs;
-
-    // Set available capture groups ($1 to $9)
-    for (; idx < 10; ++idx) {
-      if (idx_max > idx) {
-        mrb_gv_set(mrb, sym_dollar_numbers[idx], mrb_funcall_id(mrb, match_value, MRB_OPSYM(aref), 1, mrb_fixnum_value(idx)));
-      } else {
-        mrb_gv_remove(mrb, sym_dollar_numbers[idx]);
-      }
-    }
+    onig_gv_set(mrb, MISMATCH_NIL_OR(match_value));
   }
 
   return result;
@@ -999,8 +1016,12 @@ string_split(mrb_state* mrb, mrb_value self) {
   mrb_int start = 0, beg = 0, end = 0;
   mrb_int idx = 0, i = 0;
   mrb_int last_null = 0;
+  struct RObject* const cls = (struct RObject*)mrb_class_get_id(mrb, MRB_SYM(OnigRegexp));
 
   if (argc == 2) { i = 1; }
+
+  mrb_value last_set_global_variables = mrb_obj_iv_get(mrb, (struct RObject*)cls, MRB_IVSYM(set_global_variables));
+  mrb_obj_iv_set(mrb, (struct RObject*)cls, MRB_IVSYM(set_global_variables), mrb_false_value());
   while ((end = onig_match_common(mrb, reg, match_value, self, start)) >= 0) {
     if (start == end && match->beg[0] == match->end[0]) {
       if (!ptr) {
@@ -1036,6 +1057,9 @@ string_split(mrb_state* mrb, mrb_value self) {
     }
     if (!lim_p && limit <= ++i) break;
   }
+
+  mrb_obj_iv_set(mrb, (struct RObject*)cls, MRB_IVSYM(set_global_variables), last_set_global_variables);
+  onig_gv_set(mrb, match_value);
 
   if (RSTRING_LEN(self) > 0 && (!lim_p || RSTRING_LEN(self) > beg || limit < 0)) {
     if (RSTRING_LEN(self) == beg)
