@@ -60,6 +60,9 @@ static mrb_sym sym_dollar_plus;        // $+
 static mrb_sym sym_dollar_semicolon;   // $;
 static mrb_sym sym_dollar_numbers[10]; // $0 to $9
 
+struct RClass* cls_onig_regexp;
+struct RClass* cls_onig_match_data;
+
 static const char utf8len_codepage[256] =
 {
   1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
@@ -179,7 +182,7 @@ create_onig_region(mrb_state* mrb, mrb_value const str, mrb_value rex) {
   mrb_assert(mrb_string_p(str));
   mrb_assert(mrb_type(rex) == MRB_TT_DATA && DATA_TYPE(rex) == &mrb_onig_regexp_type);
   mrb_value const c = mrb_obj_value(mrb_data_object_alloc(
-      mrb, mrb_class_get_id(mrb, MRB_SYM(OnigMatchData)), onig_region_new(), &mrb_onig_region_type));
+      mrb, cls_onig_match_data, onig_region_new(), &mrb_onig_region_type));
   mrb_iv_set(mrb, c, MRB_SYM(string), mrb_str_dup(mrb, str));
   mrb_iv_set(mrb, c, MRB_SYM(regexp), rex);
   return c;
@@ -241,11 +244,10 @@ onig_match_common(mrb_state* mrb, OnigRegex reg, mrb_value match_value, mrb_valu
     mrb_raise(mrb, E_REGEXP_ERROR, err);
   }
 
-  struct RObject* const cls = (struct RObject*)mrb_class_get_id(mrb, MRB_SYM(OnigRegexp));
-  mrb_obj_iv_set(mrb, cls, MRB_IVSYM(last_match), MISMATCH_NIL_OR(match_value));
+  mrb_obj_iv_set(mrb, (struct RObject*)cls_onig_regexp, MRB_IVSYM(last_match), MISMATCH_NIL_OR(match_value));
 
-  if (mrb_class_get_id(mrb, MRB_SYM(Regexp)) == (struct RClass*)cls &&
-    mrb_bool(mrb_obj_iv_get(mrb, (struct RObject*)cls, MRB_IVSYM(set_global_variables))))
+  if (mrb_class_get_id(mrb, MRB_SYM(Regexp)) == cls_onig_regexp &&
+    mrb_bool(mrb_obj_iv_get(mrb, (struct RObject*)cls_onig_regexp, MRB_IVSYM(set_global_variables))))
   {
     onig_gv_set(mrb, MISMATCH_NIL_OR(match_value));
   }
@@ -354,7 +356,7 @@ onig_regexp_equal(mrb_state *mrb, mrb_value self) {
   if (mrb_nil_p(other)) {
     return mrb_false_value();
   }
-  if (!mrb_obj_is_kind_of(mrb, other, mrb_class_get_id(mrb, MRB_SYM(OnigRegexp)))) {
+  if (!mrb_obj_is_kind_of(mrb, other, cls_onig_regexp)) {
     return mrb_false_value();
   }
   Data_Get_Struct(mrb, self, &mrb_onig_regexp_type, self_reg);
@@ -998,7 +1000,7 @@ string_split(mrb_state* mrb, mrb_value self) {
     if(!mrb_nil_p(pattern)) { pattern = mrb_string_type(mrb, pattern); }
     if(mrb_string_p(pattern) && RSTRING_LEN(pattern) == 0) {
       /* Special case - split into chars */
-      pattern = mrb_funcall_id(mrb, mrb_obj_value(mrb_class_get_id(mrb, MRB_SYM(OnigRegexp))), MRB_SYM(new), 1, pattern);
+      pattern = mrb_funcall_id(mrb, mrb_obj_value(cls_onig_regexp), MRB_SYM(new), 1, pattern);
     } else {
       return mrb_funcall_id(mrb, self, MRB_SYM(string_split), argc, pattern, mrb_fixnum_value(limit));
     }
@@ -1018,12 +1020,10 @@ string_split(mrb_state* mrb, mrb_value self) {
   mrb_int start = 0, beg = 0, end = 0;
   mrb_int idx = 0, i = 0;
   mrb_int last_null = 0;
-  struct RObject* const cls = (struct RObject*)mrb_class_get_id(mrb, MRB_SYM(OnigRegexp));
-
   if (argc == 2) { i = 1; }
 
-  mrb_value last_set_global_variables = mrb_obj_iv_get(mrb, (struct RObject*)cls, MRB_IVSYM(set_global_variables));
-  mrb_obj_iv_set(mrb, (struct RObject*)cls, MRB_IVSYM(set_global_variables), mrb_false_value());
+  mrb_value last_set_global_variables = mrb_obj_iv_get(mrb, (struct RObject*)cls_onig_regexp, MRB_IVSYM(set_global_variables));
+  mrb_obj_iv_set(mrb, (struct RObject*)cls_onig_regexp, MRB_IVSYM(set_global_variables), mrb_false_value());
   while ((end = onig_match_common(mrb, reg, match_value, self, start)) >= 0) {
     if (start == end && match->beg[0] == match->end[0]) {
       if (!ptr) {
@@ -1060,7 +1060,7 @@ string_split(mrb_state* mrb, mrb_value self) {
     if (!lim_p && limit <= ++i) break;
   }
 
-  mrb_obj_iv_set(mrb, (struct RObject*)cls, MRB_IVSYM(set_global_variables), last_set_global_variables);
+  mrb_obj_iv_set(mrb, (struct RObject*)cls_onig_regexp, MRB_IVSYM(set_global_variables), last_set_global_variables);
   onig_gv_set(mrb, match_value);
 
   if (RSTRING_LEN(self) > 0 && (!lim_p || RSTRING_LEN(self) > beg || limit < 0)) {
@@ -1148,7 +1148,7 @@ onig_regexp_clear_global_variables(mrb_state* mrb, mrb_value self) {
 static mrb_value
 onig_regexp_does_set_global_variables(mrb_state* mrb, mrb_value self) {
   (void)self;
-  return mrb_obj_iv_get(mrb, (struct RObject*)mrb_class_get_id(mrb, MRB_SYM(OnigRegexp)),
+  return mrb_obj_iv_get(mrb, (struct RObject*)cls_onig_regexp,
                         MRB_IVSYM(set_global_variables));
 }
 static mrb_value
@@ -1156,7 +1156,7 @@ onig_regexp_set_set_global_variables(mrb_state* mrb, mrb_value self) {
   mrb_value arg;
   mrb_get_args(mrb, "o", &arg);
   mrb_value const ret = mrb_bool_value(mrb_bool(arg));
-  mrb_obj_iv_set(mrb, (struct RObject*)mrb_class_get_id(mrb, MRB_SYM(OnigRegexp)),
+  mrb_obj_iv_set(mrb, (struct RObject*)cls_onig_regexp,
                  MRB_IVSYM(set_global_variables), ret);
   onig_regexp_clear_global_variables(mrb, self);
   return ret;
@@ -1214,8 +1214,6 @@ onig_regexp_escape(mrb_state* mrb, mrb_value self) {
 
 void
 mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
-  struct RClass *clazz;
-
   // Initialize global symbols with special characters
   sym_dollar_tilde = mrb_intern_lit(mrb, "$~");
   sym_dollar_ampersand = mrb_intern_lit(mrb, "$&");
@@ -1230,87 +1228,87 @@ mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
     sym_dollar_numbers[idx] = mrb_intern(mrb, n, 2);
   }
 
-  clazz = mrb_define_class(mrb, "OnigRegexp", mrb->object_class);
-  MRB_SET_INSTANCE_TT(clazz, MRB_TT_DATA);
+  cls_onig_regexp = mrb_define_class(mrb, "OnigRegexp", mrb->object_class);
+  MRB_SET_INSTANCE_TT(cls_onig_regexp, MRB_TT_DATA);
 
   // enable global variables setting in onig_match_common by default
-  mrb_obj_iv_set(mrb, (struct RObject*)clazz, MRB_IVSYM(set_global_variables), mrb_true_value());
+  mrb_obj_iv_set(mrb, (struct RObject*)cls_onig_regexp, MRB_IVSYM(set_global_variables), mrb_true_value());
 
-  mrb_define_const(mrb, clazz, "IGNORECASE", mrb_fixnum_value(ONIG_OPTION_IGNORECASE));
-  mrb_define_const(mrb, clazz, "EXTENDED", mrb_fixnum_value(ONIG_OPTION_EXTEND));
-  mrb_define_const(mrb, clazz, "MULTILINE", mrb_fixnum_value(ONIG_OPTION_MULTILINE));
-  mrb_define_const(mrb, clazz, "SINGLELINE", mrb_fixnum_value(ONIG_OPTION_SINGLELINE));
-  mrb_define_const(mrb, clazz, "FIND_LONGEST", mrb_fixnum_value(ONIG_OPTION_FIND_LONGEST));
-  mrb_define_const(mrb, clazz, "FIND_NOT_EMPTY", mrb_fixnum_value(ONIG_OPTION_FIND_NOT_EMPTY));
-  mrb_define_const(mrb, clazz, "NEGATE_SINGLELINE", mrb_fixnum_value(ONIG_OPTION_NEGATE_SINGLELINE));
-  mrb_define_const(mrb, clazz, "DONT_CAPTURE_GROUP", mrb_fixnum_value(ONIG_OPTION_DONT_CAPTURE_GROUP));
-  mrb_define_const(mrb, clazz, "CAPTURE_GROUP", mrb_fixnum_value(ONIG_OPTION_CAPTURE_GROUP));
-  mrb_define_const(mrb, clazz, "NOTBOL", mrb_fixnum_value(ONIG_OPTION_NOTBOL));
-  mrb_define_const(mrb, clazz, "NOTEOL", mrb_fixnum_value(ONIG_OPTION_NOTEOL));
+  mrb_define_const(mrb, cls_onig_regexp, "IGNORECASE", mrb_fixnum_value(ONIG_OPTION_IGNORECASE));
+  mrb_define_const(mrb, cls_onig_regexp, "EXTENDED", mrb_fixnum_value(ONIG_OPTION_EXTEND));
+  mrb_define_const(mrb, cls_onig_regexp, "MULTILINE", mrb_fixnum_value(ONIG_OPTION_MULTILINE));
+  mrb_define_const(mrb, cls_onig_regexp, "SINGLELINE", mrb_fixnum_value(ONIG_OPTION_SINGLELINE));
+  mrb_define_const(mrb, cls_onig_regexp, "FIND_LONGEST", mrb_fixnum_value(ONIG_OPTION_FIND_LONGEST));
+  mrb_define_const(mrb, cls_onig_regexp, "FIND_NOT_EMPTY", mrb_fixnum_value(ONIG_OPTION_FIND_NOT_EMPTY));
+  mrb_define_const(mrb, cls_onig_regexp, "NEGATE_SINGLELINE", mrb_fixnum_value(ONIG_OPTION_NEGATE_SINGLELINE));
+  mrb_define_const(mrb, cls_onig_regexp, "DONT_CAPTURE_GROUP", mrb_fixnum_value(ONIG_OPTION_DONT_CAPTURE_GROUP));
+  mrb_define_const(mrb, cls_onig_regexp, "CAPTURE_GROUP", mrb_fixnum_value(ONIG_OPTION_CAPTURE_GROUP));
+  mrb_define_const(mrb, cls_onig_regexp, "NOTBOL", mrb_fixnum_value(ONIG_OPTION_NOTBOL));
+  mrb_define_const(mrb, cls_onig_regexp, "NOTEOL", mrb_fixnum_value(ONIG_OPTION_NOTEOL));
 #ifdef ONIG_OPTION_POSIX_REGION
-  mrb_define_const(mrb, clazz, "POSIX_REGION", mrb_fixnum_value(ONIG_OPTION_POSIX_REGION));
+  mrb_define_const(mrb, cls_onig_regexp, "POSIX_REGION", mrb_fixnum_value(ONIG_OPTION_POSIX_REGION));
 #endif
 #ifdef ONIG_OPTION_ASCII_RANGE
-  mrb_define_const(mrb, clazz, "ASCII_RANGE", mrb_fixnum_value(ONIG_OPTION_ASCII_RANGE));
+  mrb_define_const(mrb, cls_onig_regexp, "ASCII_RANGE", mrb_fixnum_value(ONIG_OPTION_ASCII_RANGE));
 #endif
 #ifdef ONIG_OPTION_POSIX_BRACKET_ALL_RANGE
-  mrb_define_const(mrb, clazz, "POSIX_BRACKET_ALL_RANGE", mrb_fixnum_value(ONIG_OPTION_POSIX_BRACKET_ALL_RANGE));
+  mrb_define_const(mrb, cls_onig_regexp, "POSIX_BRACKET_ALL_RANGE", mrb_fixnum_value(ONIG_OPTION_POSIX_BRACKET_ALL_RANGE));
 #endif
 #ifdef ONIG_OPTION_WORD_BOUND_ALL_RANGE
-  mrb_define_const(mrb, clazz, "WORD_BOUND_ALL_RANGE", mrb_fixnum_value(ONIG_OPTION_WORD_BOUND_ALL_RANGE));
+  mrb_define_const(mrb, cls_onig_regexp, "WORD_BOUND_ALL_RANGE", mrb_fixnum_value(ONIG_OPTION_WORD_BOUND_ALL_RANGE));
 #endif
 #ifdef ONIG_OPTION_NEWLINE_CRLF
-  mrb_define_const(mrb, clazz, "NEWLINE_CRLF", mrb_fixnum_value(ONIG_OPTION_NEWLINE_CRLF));
+  mrb_define_const(mrb, cls_onig_regexp, "NEWLINE_CRLF", mrb_fixnum_value(ONIG_OPTION_NEWLINE_CRLF));
 #endif
 #ifdef ONIG_OPTION_NOTBOS
-  mrb_define_const(mrb, clazz, "NOTBOS", mrb_fixnum_value(ONIG_OPTION_NOTBOS));
+  mrb_define_const(mrb, cls_onig_regexp, "NOTBOS", mrb_fixnum_value(ONIG_OPTION_NOTBOS));
 #endif
 #ifdef ONIG_OPTION_NOTEOS
-  mrb_define_const(mrb, clazz, "NOTEOS", mrb_fixnum_value(ONIG_OPTION_NOTEOS));
+  mrb_define_const(mrb, cls_onig_regexp, "NOTEOS", mrb_fixnum_value(ONIG_OPTION_NOTEOS));
 #endif
 
-  mrb_define_method(mrb, clazz, "initialize", onig_regexp_initialize, MRB_ARGS_REQ(1) | MRB_ARGS_OPT(2));
-  mrb_define_method(mrb, clazz, "==", onig_regexp_equal, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, clazz, "match", onig_regexp_match, MRB_ARGS_REQ(1) | MRB_ARGS_OPT(1));
-  mrb_define_method(mrb, clazz, "match?", onig_regexp_match_p, MRB_ARGS_REQ(1) | MRB_ARGS_OPT(1));
-  mrb_define_method(mrb, clazz, "casefold?", onig_regexp_casefold_p, MRB_ARGS_NONE());
-  mrb_define_method(mrb, clazz, "named_captures", onig_regexp_named_captures, MRB_ARGS_NONE());
-  mrb_define_method(mrb, clazz, "names", onig_regexp_names, MRB_ARGS_NONE());
+  mrb_define_method(mrb, cls_onig_regexp, "initialize", onig_regexp_initialize, MRB_ARGS_REQ(1) | MRB_ARGS_OPT(2));
+  mrb_define_method(mrb, cls_onig_regexp, "==", onig_regexp_equal, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, cls_onig_regexp, "match", onig_regexp_match, MRB_ARGS_REQ(1) | MRB_ARGS_OPT(1));
+  mrb_define_method(mrb, cls_onig_regexp, "match?", onig_regexp_match_p, MRB_ARGS_REQ(1) | MRB_ARGS_OPT(1));
+  mrb_define_method(mrb, cls_onig_regexp, "casefold?", onig_regexp_casefold_p, MRB_ARGS_NONE());
+  mrb_define_method(mrb, cls_onig_regexp, "named_captures", onig_regexp_named_captures, MRB_ARGS_NONE());
+  mrb_define_method(mrb, cls_onig_regexp, "names", onig_regexp_names, MRB_ARGS_NONE());
 
-  mrb_define_method(mrb, clazz, "options", onig_regexp_options, MRB_ARGS_NONE());
-  mrb_define_method(mrb, clazz, "inspect", onig_regexp_inspect, MRB_ARGS_NONE());
-  mrb_define_method(mrb, clazz, "to_s", onig_regexp_to_s, MRB_ARGS_NONE());
+  mrb_define_method(mrb, cls_onig_regexp, "options", onig_regexp_options, MRB_ARGS_NONE());
+  mrb_define_method(mrb, cls_onig_regexp, "inspect", onig_regexp_inspect, MRB_ARGS_NONE());
+  mrb_define_method(mrb, cls_onig_regexp, "to_s", onig_regexp_to_s, MRB_ARGS_NONE());
 
-  mrb_define_module_function(mrb, clazz, "escape", onig_regexp_escape, MRB_ARGS_REQ(1));
-  mrb_define_module_function(mrb, clazz, "quote", onig_regexp_escape, MRB_ARGS_REQ(1));
-  mrb_define_module_function(mrb, clazz, "version", onig_regexp_version, MRB_ARGS_NONE());
-  mrb_define_module_function(mrb, clazz, "set_global_variables?", onig_regexp_does_set_global_variables, MRB_ARGS_NONE());
-  mrb_define_module_function(mrb, clazz, "set_global_variables=", onig_regexp_set_set_global_variables, MRB_ARGS_REQ(1));
-  mrb_define_module_function(mrb, clazz, "clear_global_variables", onig_regexp_clear_global_variables, MRB_ARGS_NONE());
+  mrb_define_module_function(mrb, cls_onig_regexp, "escape", onig_regexp_escape, MRB_ARGS_REQ(1));
+  mrb_define_module_function(mrb, cls_onig_regexp, "quote", onig_regexp_escape, MRB_ARGS_REQ(1));
+  mrb_define_module_function(mrb, cls_onig_regexp, "version", onig_regexp_version, MRB_ARGS_NONE());
+  mrb_define_module_function(mrb, cls_onig_regexp, "set_global_variables?", onig_regexp_does_set_global_variables, MRB_ARGS_NONE());
+  mrb_define_module_function(mrb, cls_onig_regexp, "set_global_variables=", onig_regexp_set_set_global_variables, MRB_ARGS_REQ(1));
+  mrb_define_module_function(mrb, cls_onig_regexp, "clear_global_variables", onig_regexp_clear_global_variables, MRB_ARGS_NONE());
 
-  struct RClass* match_data = mrb_define_class(mrb, "OnigMatchData", mrb->object_class);
-  MRB_SET_INSTANCE_TT(match_data, MRB_TT_DATA);
-  mrb_undef_class_method(mrb, match_data, "new");
+  cls_onig_match_data = mrb_define_class(mrb, "OnigMatchData", mrb->object_class);
+  MRB_SET_INSTANCE_TT(cls_onig_match_data, MRB_TT_DATA);
+  mrb_undef_class_method(mrb, cls_onig_match_data, "new");
 
-  // mrb_define_method(mrb, match_data, "==", &match_data_eq);
-  mrb_define_method(mrb, match_data, "[]", &match_data_index, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, match_data, "begin", &match_data_begin, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, match_data, "captures", &match_data_captures, MRB_ARGS_NONE());
-  mrb_define_method(mrb, match_data, "end", &match_data_end, MRB_ARGS_REQ(1));
-  // mrb_define_method(mrb, match_data, "eql?", &match_data_eq);
-  // mrb_define_method(mrb, match_data, "hash", &match_data_hash);
-  mrb_define_method(mrb, match_data, "initialize_copy", &match_data_copy, MRB_ARGS_REQ(1));
-  // mrb_define_method(mrb, match_data, "inspect", &match_data_inspect);
-  mrb_define_method(mrb, match_data, "length", &match_data_length, MRB_ARGS_NONE());
-  mrb_define_method(mrb, match_data, "offset", &match_data_offset, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, match_data, "post_match", &match_data_post_match, MRB_ARGS_NONE());
-  mrb_define_method(mrb, match_data, "pre_match", &match_data_pre_match, MRB_ARGS_NONE());
-  mrb_define_method(mrb, match_data, "regexp", &match_data_regexp, MRB_ARGS_NONE());
-  mrb_define_method(mrb, match_data, "size", &match_data_length, MRB_ARGS_NONE());
-  mrb_define_method(mrb, match_data, "string", &match_data_string, MRB_ARGS_NONE());
-  mrb_define_method(mrb, match_data, "to_a", &match_data_to_a, MRB_ARGS_NONE());
-  mrb_define_method(mrb, match_data, "to_s", &match_data_to_s, MRB_ARGS_NONE());
-  // mrb_define_method(mrb, match_data, "values_at", &match_data_values_at);
+  // mrb_define_method(mrb, cls_onig_match_data, "==", &match_data_eq);
+  mrb_define_method(mrb, cls_onig_match_data, "[]", &match_data_index, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, cls_onig_match_data, "begin", &match_data_begin, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, cls_onig_match_data, "captures", &match_data_captures, MRB_ARGS_NONE());
+  mrb_define_method(mrb, cls_onig_match_data, "end", &match_data_end, MRB_ARGS_REQ(1));
+  // mrb_define_method(mrb, cls_onig_match_data, "eql?", &match_data_eq);
+  // mrb_define_method(mrb, cls_onig_match_data, "hash", &match_data_hash);
+  mrb_define_method(mrb, cls_onig_match_data, "initialize_copy", &match_data_copy, MRB_ARGS_REQ(1));
+  // mrb_define_method(mrb, cls_onig_match_data, "inspect", &match_data_inspect);
+  mrb_define_method(mrb, cls_onig_match_data, "length", &match_data_length, MRB_ARGS_NONE());
+  mrb_define_method(mrb, cls_onig_match_data, "offset", &match_data_offset, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, cls_onig_match_data, "post_match", &match_data_post_match, MRB_ARGS_NONE());
+  mrb_define_method(mrb, cls_onig_match_data, "pre_match", &match_data_pre_match, MRB_ARGS_NONE());
+  mrb_define_method(mrb, cls_onig_match_data, "regexp", &match_data_regexp, MRB_ARGS_NONE());
+  mrb_define_method(mrb, cls_onig_match_data, "size", &match_data_length, MRB_ARGS_NONE());
+  mrb_define_method(mrb, cls_onig_match_data, "string", &match_data_string, MRB_ARGS_NONE());
+  mrb_define_method(mrb, cls_onig_match_data, "to_a", &match_data_to_a, MRB_ARGS_NONE());
+  mrb_define_method(mrb, cls_onig_match_data, "to_s", &match_data_to_s, MRB_ARGS_NONE());
+  // mrb_define_method(mrb, cls_onig_match_data, "values_at", &match_data_values_at);
 
   mrb_define_method(mrb, mrb->string_class, "onig_regexp_gsub", &string_gsub, MRB_ARGS_REQ(1) | MRB_ARGS_OPT(1) | MRB_ARGS_BLOCK());
   mrb_define_method(mrb, mrb->string_class, "onig_regexp_sub", &string_sub, MRB_ARGS_REQ(1) | MRB_ARGS_OPT(1) | MRB_ARGS_BLOCK());
