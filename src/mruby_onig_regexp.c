@@ -224,8 +224,6 @@ onig_gv_set(mrb_state* mrb, mrb_value match_value) {
       }
     }
   }
-
-
 }
 
 #define MISMATCH_NIL_OR(v) (result == ONIG_MISMATCH ? mrb_nil_value() : (v))
