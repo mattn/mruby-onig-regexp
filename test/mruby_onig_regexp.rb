@@ -301,6 +301,9 @@ assert('OnigMatchData#regexp') do
 end
 
 assert('OnigMatchData#named_captures') do
+  # Skip if mruby-array-ext gem is not available
+  skip unless Array.respond_to?(:to_h)
+
   m = OnigRegexp.new("(?<a>.)(?<b>.)").match("01")
   assert_equal({"a" => "0", "b" => "1"}, m.named_captures)
 
