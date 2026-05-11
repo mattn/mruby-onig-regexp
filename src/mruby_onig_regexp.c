@@ -116,7 +116,7 @@ static struct mrb_data_type mrb_onig_region_type = {
 };
 
 static mrb_value
-str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
+onig_str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 {
 #ifdef MRB_UTF8_STRING
   if (len > 0) {
@@ -725,7 +725,7 @@ match_data_post_match(mrb_state* mrb, mrb_value self) {
   OnigRegion* reg;
   Data_Get_Struct(mrb, self, &mrb_onig_region_type, reg);
   mrb_value str = mrb_iv_get(mrb, self, MRB_SYM(string));
-  return str_substr(mrb, str, reg->end[0], RSTRING_LEN(str) - reg->end[0]);
+  return onig_str_substr(mrb, str, reg->end[0], RSTRING_LEN(str) - reg->end[0]);
 }
 
 // ISO 15.2.16.3.9
@@ -734,7 +734,7 @@ match_data_pre_match(mrb_state* mrb, mrb_value self) {
   OnigRegion* reg;
   Data_Get_Struct(mrb, self, &mrb_onig_region_type, reg);
   mrb_value str = mrb_iv_get(mrb, self, MRB_SYM(string));
-  return str_substr(mrb, str, 0, reg->beg[0]);
+  return onig_str_substr(mrb, str, 0, reg->beg[0]);
 }
 
 // ISO 15.2.16.3.11
@@ -766,7 +766,7 @@ match_data_to_a(mrb_state* mrb, mrb_value self) {
     if(reg->beg[i] == ONIG_REGION_NOTPOS) {
       mrb_ary_push(mrb, ret, mrb_nil_value());
     } else {
-      mrb_ary_push(mrb, ret, str_substr(mrb, str, reg->beg[i], reg->end[i] - reg->beg[i]));
+      mrb_ary_push(mrb, ret, onig_str_substr(mrb, str, reg->beg[i], reg->end[i] - reg->beg[i]));
     }
     mrb_gc_arena_restore(mrb, ai);
   }
@@ -781,7 +781,7 @@ match_data_to_s(mrb_state* mrb, mrb_value self) {
   mrb_value str = mrb_iv_get(mrb, self, MRB_SYM(string));
   OnigRegion* reg;
   Data_Get_Struct(mrb, self, &mrb_onig_region_type, reg);
-  return str_substr(mrb, str, reg->beg[0], reg->end[0] - reg->beg[0]);
+  return onig_str_substr(mrb, str, reg->beg[0], reg->end[0] - reg->beg[0]);
 }
 
 static void
@@ -815,7 +815,7 @@ append_replace_str(mrb_state* mrb, mrb_value result, mrb_value replace,
             reg, (OnigUChar const*)name_beg, (OnigUChar const*)ch, match);
         if (idx < 0) {
           mrb_raisef(mrb, E_INDEX_ERROR, "undefined group name reference: %S",
-                     str_substr(mrb, replace, name_beg - RSTRING_PTR(replace), ch - name_beg));
+                     onig_str_substr(mrb, replace, name_beg - RSTRING_PTR(replace), ch - name_beg));
         }
         mrb_str_cat(mrb, result, RSTRING_PTR(src) + match->beg[idx], match->end[idx] - match->beg[idx]);
       } break;
@@ -882,7 +882,7 @@ string_gsub(mrb_state* mrb, mrb_value self) {
     if(mrb_nil_p(blk)) {
       append_replace_str(mrb, result, replace_expr, self, reg, match);
     } else {
-      mrb_value const tmp_str = mrb_str_to_str(mrb, mrb_yield(mrb, blk, str_substr(
+      mrb_value const tmp_str = mrb_str_to_str(mrb, mrb_yield(mrb, blk, onig_str_substr(
           mrb, self, match->beg[0], match->end[0] - match->beg[0])));
       mrb_assert(mrb_string_p(tmp_str));
       mrb_str_concat(mrb, result, tmp_str);
@@ -935,22 +935,22 @@ string_scan(mrb_state* mrb, mrb_value self) {
     if(mrb_nil_p(blk)) {
       mrb_assert(mrb_array_p(result));
       if(m->num_regs == 1) {
-        mrb_ary_push(mrb, result, str_substr(mrb, self, m->beg[0], m->end[0] - m->beg[0]));
+        mrb_ary_push(mrb, result, onig_str_substr(mrb, self, m->beg[0], m->end[0] - m->beg[0]));
       } else {
         mrb_value const elem = mrb_ary_new_capa(mrb, m->num_regs - 1);
         for(i = 1; i < m->num_regs; ++i) {
-          mrb_ary_push(mrb, elem, str_substr(mrb, self, m->beg[i], m->end[i] - m->beg[i]));
+          mrb_ary_push(mrb, elem, onig_str_substr(mrb, self, m->beg[i], m->end[i] - m->beg[i]));
         }
         mrb_ary_push(mrb, result, elem);
       }
     } else { // call block
       mrb_assert(mrb_string_p(result));
       if(m->num_regs == 1) {
-        mrb_yield(mrb, blk, str_substr(mrb, self, m->beg[0], m->end[0] - m->beg[0]));
+        mrb_yield(mrb, blk, onig_str_substr(mrb, self, m->beg[0], m->end[0] - m->beg[0]));
       } else {
         mrb_value argv = mrb_ary_new_capa(mrb, m->num_regs - 1);
         for(i = 1; i < m->num_regs; ++i) {
-          mrb_ary_push(mrb, argv, str_substr(mrb, self, m->beg[i], m->end[i] - m->beg[i]));
+          mrb_ary_push(mrb, argv, onig_str_substr(mrb, self, m->beg[i], m->end[i] - m->beg[i]));
         }
         mrb_yield(mrb, blk, argv);
       }
@@ -1029,7 +1029,7 @@ string_split(mrb_state* mrb, mrb_value self) {
         break;
       }
       else if (last_null == 1) {
-        mrb_ary_push(mrb, result, str_substr(mrb, self, beg, utf8len(ptr+beg, ptr+len)));
+        mrb_ary_push(mrb, result, onig_str_substr(mrb, self, beg, utf8len(ptr+beg, ptr+len)));
         beg = start;
       }
       else {
@@ -1042,7 +1042,7 @@ string_split(mrb_state* mrb, mrb_value self) {
       }
     }
     else {
-      mrb_ary_push(mrb, result, str_substr(mrb, self, beg, end-beg));
+      mrb_ary_push(mrb, result, onig_str_substr(mrb, self, beg, end-beg));
       beg = start = match->end[0];
     }
     last_null = 0;
@@ -1052,7 +1052,7 @@ string_split(mrb_state* mrb, mrb_value self) {
       if (match->beg[idx] == match->end[idx])
         tmp = mrb_str_new_lit(mrb, "");
       else
-        tmp = str_substr(mrb, self, match->beg[idx], match->end[idx]-match->beg[idx]);
+        tmp = onig_str_substr(mrb, self, match->beg[idx], match->end[idx]-match->beg[idx]);
       mrb_ary_push(mrb, result, tmp);
     }
     if (!lim_p && limit <= ++i) break;
@@ -1065,7 +1065,7 @@ string_split(mrb_state* mrb, mrb_value self) {
     if (RSTRING_LEN(self) == beg)
       tmp = mrb_str_new_lit(mrb, "");
     else
-      tmp = str_substr(mrb, self, beg, RSTRING_LEN(self)-beg);
+      tmp = onig_str_substr(mrb, self, beg, RSTRING_LEN(self)-beg);
     mrb_ary_push(mrb, result, tmp);
   }
   if (lim_p && limit == 0) {
@@ -1114,7 +1114,7 @@ string_sub(mrb_state* mrb, mrb_value self) {
   if(mrb_nil_p(blk)) {
     append_replace_str(mrb, result, replace_expr, self, reg, match);
   } else {
-    mrb_value const tmp_str = mrb_str_to_str(mrb, mrb_yield(mrb, blk, str_substr(
+    mrb_value const tmp_str = mrb_str_to_str(mrb, mrb_yield(mrb, blk, onig_str_substr(
         mrb, self, match->beg[0], match->end[0] - match->beg[0])));
     mrb_assert(mrb_string_p(tmp_str));
     mrb_str_concat(mrb, result, tmp_str);
