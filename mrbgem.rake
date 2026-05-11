@@ -39,6 +39,7 @@ MRuby::Gem::Specification.new('mruby-onig-regexp') do |spec|
       Dir.chdir(build_dir) do
         _pp 'extracting', "onigmo-#{version}"
         `gzip -dc "#{dir}/onigmo-#{version}.tar.gz" | tar xf -`
+        `patch -p1 < "#{dir}/fix-build-error-with-mingw.patch"`
       end
     end
 
