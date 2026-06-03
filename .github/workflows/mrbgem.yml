@@ -17,11 +17,9 @@ jobs:
         os: [ubuntu-22.04, macos-latest]
         mruby_version:
         - master
+        - 4.0.0
+        - 3.4.0
         - 3.3.0
-        - 3.2.0
-        - 3.1.0
-        # - 3.0.0
-        - 2.1.2
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.os }} & mruby-${{ matrix.mruby_version }}
     env:
