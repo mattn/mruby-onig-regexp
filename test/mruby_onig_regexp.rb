@@ -623,3 +623,28 @@ assert('OnigRegexp not default') do
 end
 
 Regexp = prev_regexp
+
+# When another implementation owns the Regexp constant (e.g. mruby core
+# mruby-regexp), an OnigRegexp argument must still be accepted by these
+# methods instead of falling through to the non-regexp code path. Use a
+# distinct narrow class to stand in for the foreign Regexp.
+foreign_regexp = Class.new
+prev_regexp = Regexp
+Regexp = foreign_regexp
+
+assert('String regexp methods accept OnigRegexp when Regexp is foreign') do
+  assert_not_equal OnigRegexp, Regexp
+
+  assert_equal 'o ', 'hello world'[OnigRegexp.new('o.')]
+  assert_equal 6, 'hello world'.index(OnigRegexp.new('world'))
+
+  string = 'abc'
+  string[OnigRegexp.new('.')] = 'A'
+  assert_equal 'Abc', string
+
+  string = 'hello'
+  assert_equal 'el', string.slice!(OnigRegexp.new('el'))
+  assert_equal 'hlo', string
+end
+
+Regexp = prev_regexp

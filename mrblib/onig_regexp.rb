@@ -19,6 +19,22 @@ class OnigRegexp
     @last_match = match
   end
 
+  # True when +obj+ is usable as a regexp argument. This accepts both
+  # OnigRegexp and the (possibly distinct) core Regexp, since another Regexp
+  # implementation may define the Regexp constant when built alongside.
+  def self.regexp_arg?(obj)
+    obj.is_a?(OnigRegexp) || obj.is_a?(Regexp)
+  end
+
+  # Run the block while preserving OnigRegexp.last_match around it, so that
+  # mutating helpers (e.g. String#slice!) do not clobber the last match.
+  def self.preserving_last_match
+    lm = last_match
+    yield
+  ensure
+    self.last_match = lm
+  end
+
   # ISO 15.2.15.7.2
   def initialize_copy(other)
     initialize(other.source, other.options)
@@ -83,7 +99,7 @@ class String
   alias_method :old_square_brancket_equal, :[]=
 
   def [](*args)
-    return old_square_brancket(*args) unless args[0].class == Regexp
+    return old_square_brancket(*args) unless OnigRegexp.regexp_arg?(args[0])
 
     if args.size == 2
       match = args[0].match(self)
@@ -107,7 +123,7 @@ class String
   alias_method :slice, :[]
 
   def []=(*args)
-    return old_square_brancket_equal(*args) unless args[0].class == Regexp
+    return old_square_brancket_equal(*args) unless OnigRegexp.regexp_arg?(args[0])
 
     n_args = args.size
     case n_args
@@ -132,10 +148,8 @@ class String
       result = slice(*args)
       nth = args[0]
 
-      if nth.class == Regexp
-        lm = Regexp.last_match
-        self[nth] = '' if result
-        Regexp.last_match = lm
+      if OnigRegexp.regexp_arg?(nth)
+        OnigRegexp.preserving_last_match { self[nth] = '' if result }
       else
         self[nth] = '' if result
       end
@@ -145,10 +159,8 @@ class String
       nth = args[0]
       len = args[1]
 
-      if nth.class == Regexp
-        lm = Regexp.last_match
-        self[nth, len] = '' if result
-        Regexp.last_match = lm
+      if OnigRegexp.regexp_arg?(nth)
+        OnigRegexp.preserving_last_match { self[nth, len] = '' if result }
       else
         self[nth, len] = '' if result && nth != self.size
       end
@@ -160,7 +172,7 @@ class String
   alias_method :old_index, :index
 
   def index(pattern, pos=0)
-    if pattern.class == Regexp
+    if OnigRegexp.regexp_arg?(pattern)
       str = self[pos..-1]
       if str
         if num = (pattern =~ str)
