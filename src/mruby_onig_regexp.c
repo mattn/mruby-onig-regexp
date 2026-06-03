@@ -995,6 +995,18 @@ string_split(mrb_state* mrb, mrb_value self) {
   }
 
   if (!ONIG_REGEXP_P(pattern)) {
+    /* When another Regexp implementation (e.g. mruby core mruby-regexp) is
+       present, a Regexp literal is not an OnigRegexp. Convert it via its
+       source so that split() still works instead of failing to coerce it
+       into a String. */
+    if(!mrb_nil_p(pattern) && !mrb_string_p(pattern) &&
+       mrb_respond_to(mrb, pattern, MRB_SYM(source))) {
+      mrb_value src = mrb_funcall_id(mrb, pattern, MRB_SYM(source), 0);
+      pattern = mrb_funcall_id(mrb, mrb_obj_value(cls_onig_regexp), MRB_SYM(new), 1, src);
+    }
+  }
+
+  if (!ONIG_REGEXP_P(pattern)) {
     if(!mrb_nil_p(pattern)) { pattern = mrb_string_type(mrb, pattern); }
     if(mrb_string_p(pattern) && RSTRING_LEN(pattern) == 0) {
       /* Special case - split into chars */
