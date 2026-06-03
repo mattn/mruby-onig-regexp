@@ -1322,7 +1322,7 @@ mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
 
   mrb_define_method(mrb, mrb->string_class, "onig_regexp_gsub", &string_gsub, MRB_ARGS_REQ(1) | MRB_ARGS_OPT(1) | MRB_ARGS_BLOCK());
   mrb_define_method(mrb, mrb->string_class, "onig_regexp_sub", &string_sub, MRB_ARGS_REQ(1) | MRB_ARGS_OPT(1) | MRB_ARGS_BLOCK());
-  mrb_define_method(mrb, mrb->string_class, "onig_regexp_split", &string_split, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, mrb->string_class, "onig_regexp_split", &string_split, MRB_ARGS_OPT(2));
   mrb_define_method(mrb, mrb->string_class, "onig_regexp_scan", &string_scan, MRB_ARGS_REQ(1) | MRB_ARGS_BLOCK());
   mrb_define_method(mrb, mrb->string_class, "onig_regexp_match?", &string_match_p, MRB_ARGS_REQ(1) | MRB_ARGS_OPT(1));
 }
