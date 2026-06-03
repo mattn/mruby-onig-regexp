@@ -446,6 +446,15 @@ assert('String#onig_regexp_split') do
 
   assert_equal ["こ", "に", "ち", "わ"], "こ,に,ち,わ".onig_regexp_split(",")
   assert_raise(TypeError) { "".onig_regexp_split(1) }
+
+  # A Regexp literal can resolve to another Regexp implementation (e.g. mruby
+  # core mruby-regexp) when it is built alongside this gem. split must still
+  # accept it instead of trying to coerce it into a String.
+  assert_equal ['JP', 'US', ' UK'], 'JP,US, UK'.onig_regexp_split(/,/)
+  assert_equal [], ''.onig_regexp_split(/,/)
+  if Regexp != OnigRegexp
+    assert_equal ['JP', 'US', ' UK'], 'JP,US, UK'.onig_regexp_split(Regexp.new(','))
+  end
 end
 
 assert('String#onig_regexp_match') do
