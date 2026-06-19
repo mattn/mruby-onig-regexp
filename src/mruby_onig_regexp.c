@@ -51,7 +51,24 @@ THE SOFTWARE.
 #define mrb_args_int int
 #endif
 
-// Global symbols for symbols with special characters
+// Symbol and class lookups.
+//
+// By default everything is resolved per call against the mrb_state actually in
+// use: the special $-variable symbols via mrb_intern_lit(), and the OnigRegexp /
+// OnigMatchData classes via mrb_class_get_id() (an O(1) hash lookup). This is
+// the only multi-mrb_state-safe option:
+//   - An RClass* is a per-mrb_state heap pointer, so caching it in a process
+//     global means another VM's gem_init overwrites it and every other VM then
+//     reads the wrong (or freed) class object.
+//   - mrb_sym values are not guaranteed to match across mrb_states on builds
+//     without presym, and caching them in process globals from gem_init is a
+//     write-write data race when several VMs run mrb_open() concurrently.
+// See issue #129.
+//
+// Defining MRB_ONIG_REGEXP_CACHE caches both in process globals to shave off the
+// per-call lookups. This is ONLY safe when the whole process uses a single
+// mrb_state (no mruby-thread, sandboxing, snapshotting, etc.).
+#ifdef MRB_ONIG_REGEXP_CACHE
 static mrb_sym sym_dollar_tilde;       // $~
 static mrb_sym sym_dollar_ampersand;   // $&
 static mrb_sym sym_dollar_backtick;    // $`
@@ -59,31 +76,37 @@ static mrb_sym sym_dollar_quote;       // $'
 static mrb_sym sym_dollar_plus;        // $+
 static mrb_sym sym_dollar_semicolon;   // $;
 static mrb_sym sym_dollar_numbers[10]; // $0 to $9
-
-// Class lookups.
-//
-// By default the OnigRegexp / OnigMatchData classes are resolved per call with
-// mrb_class_get_id() (an O(1) hash lookup). This is safe across multiple
-// mrb_states because the class pointer is always resolved against the mrb_state
-// actually being used.
-//
-// Defining MRB_ONIG_REGEXP_CACHE_CLASS caches the class pointers in process
-// globals to shave off the per-call lookup. This is ONLY safe when the whole
-// process uses a single mrb_state: RClass* is a per-mrb_state heap pointer, so
-// sharing it across VMs (e.g. with mruby-thread, sandboxing, or snapshotting)
-// reads another VM's class object and corrupts behavior. See issue #129.
-#ifdef MRB_ONIG_REGEXP_CACHE_CLASS
 static struct RClass* cls_onig_regexp_cache;
 static struct RClass* cls_onig_match_data_cache;
+#define ONIG_SYM_TILDE(mrb)            sym_dollar_tilde
+#define ONIG_SYM_AMPERSAND(mrb)        sym_dollar_ampersand
+#define ONIG_SYM_BACKTICK(mrb)         sym_dollar_backtick
+#define ONIG_SYM_QUOTE(mrb)            sym_dollar_quote
+#define ONIG_SYM_PLUS(mrb)             sym_dollar_plus
+#define ONIG_SYM_SEMICOLON(mrb)        sym_dollar_semicolon
+#define ONIG_SYM_NUMBER(mrb, idx)      sym_dollar_numbers[(idx)]
 #define ONIG_REGEXP_CLASS(mrb)         cls_onig_regexp_cache
 #define ONIG_MATCH_DATA_CLASS(mrb)     cls_onig_match_data_cache
 #define ONIG_CACHE_REGEXP_CLASS(c)     (cls_onig_regexp_cache = (c))
 #define ONIG_CACHE_MATCH_DATA_CLASS(c) (cls_onig_match_data_cache = (c))
 #else
+#define ONIG_SYM_TILDE(mrb)            mrb_intern_lit((mrb), "$~")
+#define ONIG_SYM_AMPERSAND(mrb)        mrb_intern_lit((mrb), "$&")
+#define ONIG_SYM_BACKTICK(mrb)         mrb_intern_lit((mrb), "$`")
+#define ONIG_SYM_QUOTE(mrb)            mrb_intern_lit((mrb), "$'")
+#define ONIG_SYM_PLUS(mrb)             mrb_intern_lit((mrb), "$+")
+#define ONIG_SYM_SEMICOLON(mrb)        mrb_intern_lit((mrb), "$;")
+#define ONIG_SYM_NUMBER(mrb, idx)      onig_dollar_number_sym((mrb), (idx))
 #define ONIG_REGEXP_CLASS(mrb)         mrb_class_get_id((mrb), MRB_SYM(OnigRegexp))
 #define ONIG_MATCH_DATA_CLASS(mrb)     mrb_class_get_id((mrb), MRB_SYM(OnigMatchData))
 #define ONIG_CACHE_REGEXP_CLASS(c)     ((void)0)
 #define ONIG_CACHE_MATCH_DATA_CLASS(c) ((void)0)
+
+static mrb_sym
+onig_dollar_number_sym(mrb_state* mrb, int idx) {
+  char const n[] = { '$', (char)('0' + idx) };
+  return mrb_intern(mrb, n, 2);
+}
 #endif
 
 static const char utf8len_codepage[256] =
@@ -216,21 +239,21 @@ create_onig_region(mrb_state* mrb, mrb_value const str, mrb_value rex) {
 static void
 onig_gv_set(mrb_state* mrb, mrb_value match_value) {
 
-  mrb_gv_set(mrb, sym_dollar_tilde, match_value);
-  mrb_gv_set(mrb, sym_dollar_ampersand,
+  mrb_gv_set(mrb, ONIG_SYM_TILDE(mrb), match_value);
+  mrb_gv_set(mrb, ONIG_SYM_AMPERSAND(mrb),
              MATCH_VALUE_NIL_OR(mrb_ary_entry(match_data_to_a(mrb, match_value), 0)));
-  mrb_gv_set(mrb, sym_dollar_backtick,
+  mrb_gv_set(mrb, ONIG_SYM_BACKTICK(mrb),
              MATCH_VALUE_NIL_OR(match_data_pre_match(mrb, match_value)));
-  mrb_gv_set(mrb, sym_dollar_quote,
+  mrb_gv_set(mrb, ONIG_SYM_QUOTE(mrb),
              MATCH_VALUE_NIL_OR(match_data_post_match(mrb, match_value)));
-  mrb_gv_set(mrb, sym_dollar_plus,
+  mrb_gv_set(mrb, ONIG_SYM_PLUS(mrb),
              MATCH_VALUE_NIL_OR(mrb_ary_entry(match_data_to_a(mrb, match_value), -1)));
 
   // $1 to $9
   int idx = 1;
   if (mrb_nil_p(match_value)) {
     for (; idx < 10; ++idx) {
-      mrb_gv_remove(mrb, sym_dollar_numbers[idx]);
+      mrb_gv_remove(mrb, ONIG_SYM_NUMBER(mrb, idx));
     }
   } else {
     OnigRegion* const match = (OnigRegion*)DATA_PTR(match_value);
@@ -241,9 +264,9 @@ onig_gv_set(mrb_state* mrb, mrb_value match_value) {
     // Set available capture groups ($1 to $9)
     for (; idx < 10; ++idx) {
       if (idx_max > idx) {
-        mrb_gv_set(mrb, sym_dollar_numbers[idx], mrb_funcall_id(mrb, match_value, MRB_OPSYM(aref), 1, mrb_fixnum_value(idx)));
+        mrb_gv_set(mrb, ONIG_SYM_NUMBER(mrb, idx), mrb_funcall_id(mrb, match_value, MRB_OPSYM(aref), 1, mrb_fixnum_value(idx)));
       } else {
-        mrb_gv_remove(mrb, sym_dollar_numbers[idx]);
+        mrb_gv_remove(mrb, ONIG_SYM_NUMBER(mrb, idx));
       }
     }
   }
@@ -1008,7 +1031,7 @@ string_split(mrb_state* mrb, mrb_value self) {
   mrb_bool lim_p = !(argc == 2 && 0 < limit);
 
   if(mrb_nil_p(pattern)) { // check $; global variable
-    pattern = mrb_gv_get(mrb, sym_dollar_semicolon);
+    pattern = mrb_gv_get(mrb, ONIG_SYM_SEMICOLON(mrb));
     if (mrb_nil_p(pattern)) {
       pattern = mrb_str_new_lit(mrb, " ");
     } else if (!mrb_string_p(pattern) && !ONIG_REGEXP_P(pattern)) {
@@ -1163,16 +1186,16 @@ string_sub(mrb_state* mrb, mrb_value self) {
 
 static mrb_value
 onig_regexp_clear_global_variables(mrb_state* mrb, mrb_value self) {
-  mrb_gv_remove(mrb, sym_dollar_tilde);
-  mrb_gv_remove(mrb, sym_dollar_ampersand);
-  mrb_gv_remove(mrb, sym_dollar_backtick);
-  mrb_gv_remove(mrb, sym_dollar_quote);
-  mrb_gv_remove(mrb, sym_dollar_plus);
+  mrb_gv_remove(mrb, ONIG_SYM_TILDE(mrb));
+  mrb_gv_remove(mrb, ONIG_SYM_AMPERSAND(mrb));
+  mrb_gv_remove(mrb, ONIG_SYM_BACKTICK(mrb));
+  mrb_gv_remove(mrb, ONIG_SYM_QUOTE(mrb));
+  mrb_gv_remove(mrb, ONIG_SYM_PLUS(mrb));
 
   // Remove $1 to $9 global variables
   int idx;
   for (idx = 1; idx < 10; ++idx) {
-    mrb_gv_remove(mrb, sym_dollar_numbers[idx]);
+    mrb_gv_remove(mrb, ONIG_SYM_NUMBER(mrb, idx));
   }
 
   return self;
@@ -1247,7 +1270,9 @@ onig_regexp_escape(mrb_state* mrb, mrb_value self) {
 
 void
 mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
-  // Initialize global symbols with special characters
+#ifdef MRB_ONIG_REGEXP_CACHE
+  // Cache the special-character symbols. Only safe for single-mrb_state builds;
+  // see the comment by the macro definition.
   sym_dollar_tilde = mrb_intern_lit(mrb, "$~");
   sym_dollar_ampersand = mrb_intern_lit(mrb, "$&");
   sym_dollar_backtick = mrb_intern_lit(mrb, "$`");
@@ -1260,6 +1285,7 @@ mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
     char const n[] = { '$', '0' + idx };
     sym_dollar_numbers[idx] = mrb_intern(mrb, n, 2);
   }
+#endif
 
   struct RClass* cls_onig_regexp = mrb_define_class(mrb, "OnigRegexp", mrb->object_class);
   ONIG_CACHE_REGEXP_CLASS(cls_onig_regexp);
