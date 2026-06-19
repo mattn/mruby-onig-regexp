@@ -60,8 +60,31 @@ static mrb_sym sym_dollar_plus;        // $+
 static mrb_sym sym_dollar_semicolon;   // $;
 static mrb_sym sym_dollar_numbers[10]; // $0 to $9
 
-struct RClass* cls_onig_regexp;
-struct RClass* cls_onig_match_data;
+// Class lookups.
+//
+// By default the OnigRegexp / OnigMatchData classes are resolved per call with
+// mrb_class_get_id() (an O(1) hash lookup). This is safe across multiple
+// mrb_states because the class pointer is always resolved against the mrb_state
+// actually being used.
+//
+// Defining MRB_ONIG_REGEXP_CACHE_CLASS caches the class pointers in process
+// globals to shave off the per-call lookup. This is ONLY safe when the whole
+// process uses a single mrb_state: RClass* is a per-mrb_state heap pointer, so
+// sharing it across VMs (e.g. with mruby-thread, sandboxing, or snapshotting)
+// reads another VM's class object and corrupts behavior. See issue #129.
+#ifdef MRB_ONIG_REGEXP_CACHE_CLASS
+static struct RClass* cls_onig_regexp_cache;
+static struct RClass* cls_onig_match_data_cache;
+#define ONIG_REGEXP_CLASS(mrb)         cls_onig_regexp_cache
+#define ONIG_MATCH_DATA_CLASS(mrb)     cls_onig_match_data_cache
+#define ONIG_CACHE_REGEXP_CLASS(c)     (cls_onig_regexp_cache = (c))
+#define ONIG_CACHE_MATCH_DATA_CLASS(c) (cls_onig_match_data_cache = (c))
+#else
+#define ONIG_REGEXP_CLASS(mrb)         mrb_class_get_id((mrb), MRB_SYM(OnigRegexp))
+#define ONIG_MATCH_DATA_CLASS(mrb)     mrb_class_get_id((mrb), MRB_SYM(OnigMatchData))
+#define ONIG_CACHE_REGEXP_CLASS(c)     ((void)0)
+#define ONIG_CACHE_MATCH_DATA_CLASS(c) ((void)0)
+#endif
 
 static const char utf8len_codepage[256] =
 {
@@ -182,7 +205,7 @@ create_onig_region(mrb_state* mrb, mrb_value const str, mrb_value rex) {
   mrb_assert(mrb_string_p(str));
   mrb_assert(mrb_type(rex) == MRB_TT_DATA && DATA_TYPE(rex) == &mrb_onig_regexp_type);
   mrb_value const c = mrb_obj_value(mrb_data_object_alloc(
-      mrb, cls_onig_match_data, onig_region_new(), &mrb_onig_region_type));
+      mrb, ONIG_MATCH_DATA_CLASS(mrb), onig_region_new(), &mrb_onig_region_type));
   mrb_iv_set(mrb, c, MRB_SYM(string), mrb_str_dup(mrb, str));
   mrb_iv_set(mrb, c, MRB_SYM(regexp), rex);
   return c;
@@ -242,10 +265,10 @@ onig_match_common(mrb_state* mrb, OnigRegex reg, mrb_value match_value, mrb_valu
     mrb_raise(mrb, E_REGEXP_ERROR, err);
   }
 
-  mrb_obj_iv_set(mrb, (struct RObject*)cls_onig_regexp, MRB_IVSYM(last_match), MISMATCH_NIL_OR(match_value));
+  mrb_obj_iv_set(mrb, (struct RObject*)ONIG_REGEXP_CLASS(mrb), MRB_IVSYM(last_match), MISMATCH_NIL_OR(match_value));
 
-  if (mrb_class_get_id(mrb, MRB_SYM(Regexp)) == cls_onig_regexp &&
-    mrb_bool(mrb_obj_iv_get(mrb, (struct RObject*)cls_onig_regexp, MRB_IVSYM(set_global_variables))))
+  if (mrb_class_get_id(mrb, MRB_SYM(Regexp)) == ONIG_REGEXP_CLASS(mrb) &&
+    mrb_bool(mrb_obj_iv_get(mrb, (struct RObject*)ONIG_REGEXP_CLASS(mrb), MRB_IVSYM(set_global_variables))))
   {
     onig_gv_set(mrb, MISMATCH_NIL_OR(match_value));
   }
@@ -354,7 +377,7 @@ onig_regexp_equal(mrb_state *mrb, mrb_value self) {
   if (mrb_nil_p(other)) {
     return mrb_false_value();
   }
-  if (!mrb_obj_is_kind_of(mrb, other, cls_onig_regexp)) {
+  if (!mrb_obj_is_kind_of(mrb, other, ONIG_REGEXP_CLASS(mrb))) {
     return mrb_false_value();
   }
   Data_Get_Struct(mrb, self, &mrb_onig_regexp_type, self_reg);
@@ -1002,7 +1025,7 @@ string_split(mrb_state* mrb, mrb_value self) {
     if(!mrb_nil_p(pattern) && !mrb_string_p(pattern) &&
        mrb_respond_to(mrb, pattern, MRB_SYM(source))) {
       mrb_value src = mrb_funcall_id(mrb, pattern, MRB_SYM(source), 0);
-      pattern = mrb_funcall_id(mrb, mrb_obj_value(cls_onig_regexp), MRB_SYM(new), 1, src);
+      pattern = mrb_funcall_id(mrb, mrb_obj_value(ONIG_REGEXP_CLASS(mrb)), MRB_SYM(new), 1, src);
     }
   }
 
@@ -1010,7 +1033,7 @@ string_split(mrb_state* mrb, mrb_value self) {
     if(!mrb_nil_p(pattern)) { pattern = mrb_string_type(mrb, pattern); }
     if(mrb_string_p(pattern) && RSTRING_LEN(pattern) == 0) {
       /* Special case - split into chars */
-      pattern = mrb_funcall_id(mrb, mrb_obj_value(cls_onig_regexp), MRB_SYM(new), 1, pattern);
+      pattern = mrb_funcall_id(mrb, mrb_obj_value(ONIG_REGEXP_CLASS(mrb)), MRB_SYM(new), 1, pattern);
     } else {
       return mrb_funcall_id(mrb, self, MRB_SYM(string_split), argc, pattern, mrb_fixnum_value(limit));
     }
@@ -1032,8 +1055,8 @@ string_split(mrb_state* mrb, mrb_value self) {
   mrb_int last_null = 0;
   if (argc == 2) { i = 1; }
 
-  mrb_value last_set_global_variables = mrb_obj_iv_get(mrb, (struct RObject*)cls_onig_regexp, MRB_IVSYM(set_global_variables));
-  mrb_obj_iv_set(mrb, (struct RObject*)cls_onig_regexp, MRB_IVSYM(set_global_variables), mrb_false_value());
+  mrb_value last_set_global_variables = mrb_obj_iv_get(mrb, (struct RObject*)ONIG_REGEXP_CLASS(mrb), MRB_IVSYM(set_global_variables));
+  mrb_obj_iv_set(mrb, (struct RObject*)ONIG_REGEXP_CLASS(mrb), MRB_IVSYM(set_global_variables), mrb_false_value());
   while ((end = onig_match_common(mrb, reg, match_value, self, start)) >= 0) {
     if (start == end && match->beg[0] == match->end[0]) {
       if (!ptr) {
@@ -1070,7 +1093,7 @@ string_split(mrb_state* mrb, mrb_value self) {
     if (!lim_p && limit <= ++i) break;
   }
 
-  mrb_obj_iv_set(mrb, (struct RObject*)cls_onig_regexp, MRB_IVSYM(set_global_variables), last_set_global_variables);
+  mrb_obj_iv_set(mrb, (struct RObject*)ONIG_REGEXP_CLASS(mrb), MRB_IVSYM(set_global_variables), last_set_global_variables);
   onig_gv_set(mrb, match_value);
 
   if (RSTRING_LEN(self) > 0 && (!lim_p || RSTRING_LEN(self) > beg || limit < 0)) {
@@ -1158,7 +1181,7 @@ onig_regexp_clear_global_variables(mrb_state* mrb, mrb_value self) {
 static mrb_value
 onig_regexp_does_set_global_variables(mrb_state* mrb, mrb_value self) {
   (void)self;
-  return mrb_obj_iv_get(mrb, (struct RObject*)cls_onig_regexp,
+  return mrb_obj_iv_get(mrb, (struct RObject*)ONIG_REGEXP_CLASS(mrb),
                         MRB_IVSYM(set_global_variables));
 }
 static mrb_value
@@ -1166,7 +1189,7 @@ onig_regexp_set_set_global_variables(mrb_state* mrb, mrb_value self) {
   mrb_value arg;
   mrb_get_args(mrb, "o", &arg);
   mrb_value const ret = mrb_bool_value(mrb_bool(arg));
-  mrb_obj_iv_set(mrb, (struct RObject*)cls_onig_regexp,
+  mrb_obj_iv_set(mrb, (struct RObject*)ONIG_REGEXP_CLASS(mrb),
                  MRB_IVSYM(set_global_variables), ret);
   onig_regexp_clear_global_variables(mrb, self);
   return ret;
@@ -1238,7 +1261,8 @@ mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
     sym_dollar_numbers[idx] = mrb_intern(mrb, n, 2);
   }
 
-  cls_onig_regexp = mrb_define_class(mrb, "OnigRegexp", mrb->object_class);
+  struct RClass* cls_onig_regexp = mrb_define_class(mrb, "OnigRegexp", mrb->object_class);
+  ONIG_CACHE_REGEXP_CLASS(cls_onig_regexp);
   MRB_SET_INSTANCE_TT(cls_onig_regexp, MRB_TT_DATA);
 
   // enable global variables setting in onig_match_common by default
@@ -1296,7 +1320,8 @@ mrb_mruby_onig_regexp_gem_init(mrb_state* mrb) {
   mrb_define_module_function(mrb, cls_onig_regexp, "set_global_variables=", onig_regexp_set_set_global_variables, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, cls_onig_regexp, "clear_global_variables", onig_regexp_clear_global_variables, MRB_ARGS_NONE());
 
-  cls_onig_match_data = mrb_define_class(mrb, "OnigMatchData", mrb->object_class);
+  struct RClass* cls_onig_match_data = mrb_define_class(mrb, "OnigMatchData", mrb->object_class);
+  ONIG_CACHE_MATCH_DATA_CLASS(cls_onig_match_data);
   MRB_SET_INSTANCE_TT(cls_onig_match_data, MRB_TT_DATA);
   mrb_undef_class_method(mrb, cls_onig_match_data, "new");
 
