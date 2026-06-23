@@ -1,0 +1,14 @@
+--- a/onigmo-6.2.0/configure	2019-01-30 19:33:48.000000000 +0900
++++ b/onigmo-6.2.0/configure	2023-05-28 03:23:17.874370143 +0900
+@@ -9847,9 +9847,9 @@
+ 	# FIXME: Setting linknames here is a bad hack.
+ 	archive_cmds='$CC -o $lib $libobjs $compiler_flags `func_echo_all "$deplibs" | $SED '\''s/ -lc$//'\''` -link -dll~linknames='
+ 	# The linker will automatically build a .lib file if we build a DLL.
+-	old_archive_from_new_cmds='true'
++	#old_archive_from_new_cmds='true'
+ 	# FIXME: Should let the user specify the lib program.
+-	old_archive_cmds='lib -OUT:$oldlib$oldobjs$old_deplibs'
++	#old_archive_cmds='lib -OUT:$oldlib$oldobjs$old_deplibs'
+ 	enable_shared_with_static_runtimes=yes
+ 	;;
+       esac
